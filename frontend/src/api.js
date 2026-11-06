@@ -2,7 +2,7 @@ const BASE = (localStorage.getItem('apiUrl') || import.meta.env.VITE_API_URL || 
 
 export const getToken = () => localStorage.getItem('token');
 export const getUser = () => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } };
-export const setSession = (r) => { localStorage.setItem('token', r.token); localStorage.setItem('user', JSON.stringify({ name: r.name, email: r.email })); };
+export const setSession = (r) => { localStorage.setItem('token', r.token); localStorage.setItem('user', JSON.stringify({ name: r.name, email: r.email, isAdmin: !!r.isAdmin })); };
 export const clearSession = () => { localStorage.removeItem('token'); localStorage.removeItem('user'); };
 
 async function call(method, path, body) {
@@ -31,7 +31,19 @@ export const api = {
   attempts: () => call('GET', '/attempts'),
   attempt: (id) => call('GET', `/attempts/${id}`),
   analytics: () => call('GET', '/analytics'),
+  adminStats: () => call('GET', '/admin/stats'),
+  adminQuestions: (p) => call('GET', '/admin/questions?' + new URLSearchParams(p)),
+  adminDelete: (id) => call('DELETE', '/admin/questions/' + id),
+  adminImport: (b) => call('POST', '/admin/questions/import', b),
 };
+
+export async function downloadTemplate() {
+  const res = await fetch(BASE + '/admin/template.csv', { headers: { Authorization: 'Bearer ' + getToken() } });
+  if (!res.ok) throw new Error('Download failed');
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a'); a.href = url; a.download = 'questions-template.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
 
 export const fmtTime = (s) => {
   const m = Math.floor(s / 60), ss = s % 60;

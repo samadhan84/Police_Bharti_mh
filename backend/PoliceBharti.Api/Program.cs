@@ -25,7 +25,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ValidateLifetime = true,
     };
 });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(o => o.AddPolicy("Admin", p => p.RequireRole("Admin")));
 // Bearer-token auth (no cookies), so open CORS is safe and lets web, Electron and Capacitor clients connect.
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 
@@ -45,6 +45,7 @@ app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 app.MapAuth();
 app.MapAttempts();
 app.MapAnalytics();
+app.MapAdmin();
 
 app.Run();
 

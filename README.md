@@ -18,6 +18,16 @@ Mock-exam platform for the Maharashtra Police Bharti written test, for **web, Wi
 - Result page: score, subject-wise chart, full answer review with explanations, time per question.
 - **Analytics**: score trend, subject & topic accuracy, difficulty-wise accuracy, strong/weak topics, skipped-question and speed warnings, and a written "what to improve before the final exam" list.
 
+## Admin panel (import questions)
+Admins are the emails in config `Admin:Emails`. In Development this is `admin@policebharti.local` (see `appsettings.Development.json`); **register that email in the app, then log in** – an **Admin / प्रशासन** tab appears.
+In production set `Admin__Emails__0=you@example.com` and register that account immediately, before anyone else can.
+
+- **Import tab:** download the CSV template → fill in Excel (save as *CSV UTF-8*) → choose the file → **Validate (dry run)** → **Import**. JSON arrays with the same keys also work. Invalid rows are listed with the reason and skipped; duplicates (same subject + English text) are skipped; a new subject needs `subject_mr`.
+- **All questions tab:** search/filter and delete (a question already used in a student's attempt cannot be deleted).
+- CSV columns: `subject, subject_mr, topic_en, topic_mr, difficulty(1-3), question_en, question_mr, en_a..en_d, mr_a..mr_d, correct(A-D), explanation_en, explanation_mr`.
+
+Check it: `backend/scripts/admin-smoke.sh` (API: permissions, dry-run, import, duplicates, invalid rows, delete).
+
 ## Exam pattern used
 Written test (per Maharashtra Police recruitment sources): 100 questions × 1 mark, 90 minutes, four sections of 25 – Arithmetic, General Knowledge/Current Affairs, Reasoning, Marathi Grammar – objective, no negative marking. Physical test (running, shot-put, etc.) is separate and **not** covered by this app. Always confirm against the official notification on mahapolice.gov.in – marks/pattern can change per recruitment cycle.
 
