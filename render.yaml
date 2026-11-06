@@ -1,0 +1,14 @@
+# Render Blueprint: New + -> Blueprint -> pick this repo. Fill the prompted secrets.
+services:
+  - type: web
+    name: police-bharti-mock
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: ConnectionStrings__Default
+        sync: false          # paste your Aiven MySQL connection string (see DEPLOY.md)
+      - key: Admin__Emails__0
+        sync: false          # your email = admin account
+      - key: Jwt__Key
+        generateValue: true  # Render creates a strong random secret

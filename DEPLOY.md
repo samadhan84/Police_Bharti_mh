@@ -1,4 +1,27 @@
-# Deploying for students (Railway – about 15 minutes)
+# Option A – FREE (Render + Aiven MySQL)
+
+Free tiers change, so confirm on the sites below. As of my check: [Render free web services](https://render.com/changelog/free-web-services-now-remain-active-while-receiving-websocket-messages) run Docker apps for free (750 h/month) but **go to sleep after ~15 minutes without visits**; the first visitor then waits roughly 30–60 seconds. [Aiven's free MySQL](https://aiven.io/docs/products/mysql/concepts/mysql-free-tier) is a small single-node database with no card required. (PlanetScale no longer has a free plan.) That is fine for practice and small batches; for exam-day traffic use a paid plan.
+
+## Steps
+1. **Database:** sign up at **aiven.io** → create a **free MySQL** service. When it is running open its page, copy *Host, Port, User, Password*, and make a database called `police_bharti` (in the Aiven console → Databases, or `CREATE DATABASE police_bharti CHARACTER SET utf8mb4;`).
+   Your connection string is:
+   `Server=<host>;Port=<port>;Database=police_bharti;User=<user>;Password=<password>;SslMode=Required;`
+2. **App:** sign up at **render.com** with GitHub → **New + → Blueprint** → pick this repo/branch (it reads `render.yaml`) – or **New + → Web Service → Docker** and choose **Free**.
+3. When asked, set:
+   - `ConnectionStrings__Default` = the string from step 1
+   - `Admin__Emails__0` = **your** email
+   - `Jwt__Key` is generated for you (if you made the service by hand, set a random 32+ character value)
+4. Deploy. Render gives you `https://police-bharti-mock.onrender.com`. First build takes ~5–10 minutes.
+5. Open it → **register with your admin email first** → import questions in the **प्रशासन** tab → share the link.
+
+**Keep it awake (optional):** a free monitor such as UptimeRobot pinging `https://<your-app>/api/health` every 5 minutes reduces sleeping. Render does not officially support this, and it uses your free hours (one service ≈ 720 h, under the 750 h limit).
+
+**Not tested by me:** I could not create Render/Aiven accounts, so this path is untested end-to-end (the Docker image itself is tested in CI). If the first deploy fails, send me the Render log and I will fix it. TiDB Cloud's free tier is another MySQL-compatible option, but I have not verified EF Core works on it – use Aiven first.
+
+---
+
+# Option B – Railway (paid after trial)
+
 
 The repo contains a `Dockerfile` that packages the API **and** the web app into one container, so students just open one URL (works on phones and desktop browsers; they can "Add to Home screen"). The container needs a MySQL database. Railway offers both in one place.
 (Prices change – check railway.com/pricing. Other hosts that run Docker + MySQL work too: Render + Aiven MySQL, Azure App Service + Azure Database for MySQL, Fly.io.)
