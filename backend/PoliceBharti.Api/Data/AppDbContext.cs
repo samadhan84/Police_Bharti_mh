@@ -16,6 +16,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<Question>().HasIndex(q => new { q.Subject, q.Topic });
         b.Entity<Question>().Property(q => q.Subject).HasMaxLength(60);
         b.Entity<Question>().Property(q => q.Topic).HasMaxLength(80);
+        b.Entity<Question>().Property(q => q.SubjectMr).HasMaxLength(100);
+        b.Entity<Question>().Property(q => q.TopicMr).HasMaxLength(100);
         b.Entity<Attempt>().HasIndex(a => a.UserId);
         b.Entity<Attempt>().Property(a => a.Subject).HasMaxLength(60);
         b.Entity<AttemptAnswer>().HasIndex(a => new { a.AttemptId, a.QuestionId }).IsUnique();

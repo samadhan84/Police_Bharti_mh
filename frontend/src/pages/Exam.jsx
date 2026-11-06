@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, fmtTime } from '../api.js';
+import { LangToggle, useLang } from '../i18n.jsx';
 
 export default function Exam() {
   const { id } = useParams();
+  const { t, L, lang, subj } = useLang();
   const nav = useNavigate();
   const exam = useMemo(() => { try { return JSON.parse(sessionStorage.getItem('exam:' + id)); } catch { return null; } }, [id]);
   const saveKey = 'exam-state:' + id;
@@ -64,42 +66,44 @@ export default function Exam() {
   }, []);
   useEffect(() => { if (exam && left <= 0) finish(); }, [left]); // eslint-disable-line
 
-  if (!exam) return <div className="card"><p>This exam session is no longer available on this device.</p><button className="btn" onClick={() => nav('/')}>Back to home</button></div>;
+  if (!exam) return <div className="card"><p>{t('examGone')}</p><button className="btn" onClick={() => nav('/')}>{t('back')}</button></div>;
 
   const q = exam.questions[idx];
   const goto = (i) => { flushTime(q.id); setIdx(i); };
   const answeredCount = Object.keys(answers).length;
   const sections = [...new Set(exam.questions.map((x) => x.subject))];
+  const opts = q.options[lang] || q.options.en;
 
   return (
     <div className="exam">
       <div className="examhead">
-        <div><b>{q.subject}</b> <span className="muted">· {q.topic}</span></div>
+        <div><b>{L(q.subjectName)}</b> <span className="muted">· {L(q.topic)}</span></div>
+        <LangToggle />
         <div className={'timer' + (left < 300 ? ' danger' : '')}>⏱ {fmtTime(Math.max(0, left))}</div>
       </div>
 
       <div className="exambody">
         <section className="card qcard">
-          <div className="muted">Question {idx + 1} of {exam.questions.length}</div>
-          <p className="qtext">{q.text}</p>
-          {q.options.map((o, i) => (
+          <div className="muted">{t('question')} {idx + 1} {t('of')} {exam.questions.length}</div>
+          <p className="qtext">{L(q.text)}</p>
+          {opts.map((o, i) => (
             <label key={i} className={'opt' + (answers[q.id] === i ? ' sel' : '')}>
               <input type="radio" name={'q' + q.id} checked={answers[q.id] === i} onChange={() => setAnswers({ ...answers, [q.id]: i })} />
-              <span className="letter">{'ABCD'[i]}</span> {o}
+              <span className="letter">{(lang === 'mr' ? 'अबकड' : 'ABCD')[i]}</span> {o}
             </label>
           ))}
           <div className="actions">
-            <button className="btn" disabled={idx === 0} onClick={() => goto(idx - 1)}>← Prev</button>
-            <button className="btn" onClick={() => { const a = { ...answers }; delete a[q.id]; setAnswers(a); }}>Clear</button>
-            <button className={'btn' + (marked[q.id] ? ' warn' : '')} onClick={() => setMarked({ ...marked, [q.id]: !marked[q.id] })}>⚑ Review</button>
-            <button className="btn primary" disabled={idx === exam.questions.length - 1} onClick={() => goto(idx + 1)}>Next →</button>
+            <button className="btn" disabled={idx === 0} onClick={() => goto(idx - 1)}>{t('prev')}</button>
+            <button className="btn" onClick={() => { const a = { ...answers }; delete a[q.id]; setAnswers(a); }}>{t('clear')}</button>
+            <button className={'btn' + (marked[q.id] ? ' warn' : '')} onClick={() => setMarked({ ...marked, [q.id]: !marked[q.id] })}>{t('review')}</button>
+            <button className="btn primary" disabled={idx === exam.questions.length - 1} onClick={() => goto(idx + 1)}>{t('next')}</button>
           </div>
         </section>
 
         <aside className="card palette">
           {sections.map((s) => (
             <div key={s}>
-              <div className="muted small">{s}</div>
+              <div className="muted small">{subj(s)}</div>
               <div className="pal">
                 {exam.questions.map((x, i) => x.subject === s && (
                   <button key={x.id} onClick={() => goto(i)}
@@ -108,19 +112,19 @@ export default function Exam() {
               </div>
             </div>
           ))}
-          <div className="muted small">Answered {answeredCount}/{exam.questions.length}</div>
+          <div className="muted small">{t('answered')} {answeredCount}/{exam.questions.length}</div>
           {err && <div className="error">{err}</div>}
-          <button className="btn danger" disabled={busy} onClick={() => setConfirm(true)}>Submit test</button>
+          <button className="btn danger" disabled={busy} onClick={() => setConfirm(true)}>{t('submitTest')}</button>
         </aside>
       </div>
 
       {confirm && (
         <div className="modal"><div className="card">
-          <h3>Submit test?</h3>
-          <p>Answered {answeredCount} · Unanswered {exam.questions.length - answeredCount} · Marked {Object.values(marked).filter(Boolean).length}</p>
+          <h3>{t('submitQ')}</h3>
+          <p>{t('answered')} {answeredCount} · {t('unanswered')} {exam.questions.length - answeredCount} · {t('marked')} {Object.values(marked).filter(Boolean).length}</p>
           <div className="actions">
-            <button className="btn" onClick={() => setConfirm(false)}>Continue test</button>
-            <button className="btn danger" disabled={busy} onClick={finish}>{busy ? 'Submitting…' : 'Yes, submit'}</button>
+            <button className="btn" onClick={() => setConfirm(false)}>{t('contTest')}</button>
+            <button className="btn danger" disabled={busy} onClick={finish}>{busy ? t('submitting') : t('yesSubmit')}</button>
           </div>
         </div></div>
       )}

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, setSession } from '../api.js';
+import { LangToggle, useLang } from '../i18n.jsx';
 
 export default function Login() {
   const nav = useNavigate();
+  const { t } = useLang();
   const [mode, setMode] = useState('login');
   const [f, setF] = useState({ name: '', email: '', password: '' });
   const [err, setErr] = useState('');
@@ -20,15 +22,16 @@ export default function Login() {
 
   return (
     <form className="card auth" onSubmit={submit}>
-      <h1>🚓 पोलीस भरती Mock Test</h1>
-      <p className="muted">Maharashtra Police Bharti – 100 marks · 90 minutes</p>
-      {mode === 'register' && <input placeholder="Full name" value={f.name} onChange={set('name')} required />}
-      <input type="email" placeholder="Email" value={f.email} onChange={set('email')} required />
-      <input type="password" placeholder="Password (min 6 characters)" value={f.password} onChange={set('password')} required minLength={6} />
+      <div><LangToggle /></div>
+      <h1>🚓 {t('app')}</h1>
+      <p className="muted">{t('tagline')}</p>
+      {mode === 'register' && <input placeholder={t('fullName')} value={f.name} onChange={set('name')} required />}
+      <input type="email" placeholder={t('email')} value={f.email} onChange={set('email')} required />
+      <input type="password" placeholder={t('password')} value={f.password} onChange={set('password')} required minLength={6} />
       {err && <div className="error">{err}</div>}
-      <button className="btn primary" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Login' : 'Create account'}</button>
+      <button className="btn primary" disabled={busy}>{busy ? t('wait') : mode === 'login' ? t('login') : t('createAcc')}</button>
       <button type="button" className="link" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
-        {mode === 'login' ? 'New here? Create an account' : 'Already registered? Login'}
+        {mode === 'login' ? t('newHere') : t('haveAcc')}
       </button>
     </form>
   );

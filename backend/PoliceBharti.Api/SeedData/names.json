@@ -1,0 +1,24 @@
+{
+"subjects": {
+ "Arithmetic": ["Arithmetic","अंकगणित"],
+ "Reasoning": ["Reasoning","बुद्धिमत्ता चाचणी"],
+ "GK & Current Affairs": ["GK & Current Affairs","सामान्य ज्ञान व चालू घडामोडी"],
+ "Marathi Grammar": ["Marathi Grammar","मराठी व्याकरण"]
+},
+"topics": {
+ "Percentage":["Percentage","टक्केवारी"],"Profit & Loss":["Profit & Loss","नफा-तोटा"],"Ratio & Proportion":["Ratio & Proportion","गुणोत्तर व प्रमाण"],
+ "Average":["Average","सरासरी"],"Time & Work":["Time & Work","काम व वेळ"],"Speed & Distance":["Speed & Distance","वेग व अंतर"],
+ "Simple Interest":["Simple Interest","सरळव्याज"],"Number System":["Number System","संख्याज्ञान"],"HCF & LCM":["HCF & LCM","मसावि व लसावि"],
+ "Simplification":["Simplification","सोपे रूप देणे"],"Mensuration":["Mensuration","क्षेत्रमिती"],
+ "Number Series":["Number Series","संख्यामालिका"],"Alphabet Series":["Alphabet Series","अक्षरमालिका"],"Coding-Decoding":["Coding-Decoding","सांकेतिक भाषा"],
+ "Blood Relations":["Blood Relations","रक्तसंबंध"],"Direction Sense":["Direction Sense","दिशा ज्ञान"],"Analogy":["Analogy","साम्य संबंध"],
+ "Odd One Out":["Odd One Out","विसंगत घटक"],"Syllogism":["Syllogism","न्यायनिगमन"],"Clock":["Clock","घड्याळ"],"Calendar":["Calendar","दिनदर्शिका"],
+ "Ranking":["Ranking","क्रमवारी"],"Letter Position":["Letter Position","अक्षरांचे स्थान"],"Ordering":["Ordering","क्रम"],"Series Completion":["Series Completion","मालिका पूर्ण करणे"],
+ "Maharashtra":["Maharashtra","महाराष्ट्र"],"History":["History","इतिहास"],"Polity":["Polity","नागरिकशास्त्र"],"Science":["Science","विज्ञान"],
+ "Law & Police":["Law & Police","कायदे व पोलीस"],"Economy":["Economy","अर्थव्यवस्था"],"Current Affairs":["Current Affairs","चालू घडामोडी"],
+ "समानार्थी शब्द":["Synonyms","समानार्थी शब्द"],"विरुद्धार्थी शब्द":["Antonyms","विरुद्धार्थी शब्द"],"वचन":["Number (Singular/Plural)","वचन"],
+ "लिंग":["Gender","लिंग"],"संधी":["Sandhi","संधी"],"समास":["Samasa (Compounds)","समास"],"म्हणी":["Proverbs","म्हणी"],"वाक्प्रचार":["Idioms","वाक्प्रचार"],
+ "विभक्ती":["Vibhakti (Case)","विभक्ती"],"काळ":["Tense","काळ"],"अलंकार":["Figures of Speech","अलंकार"],"शुद्धलेखन":["Spelling","शुद्धलेखन"],
+ "शब्दसमूहाबद्दल एक शब्द":["One Word Substitution","शब्दसमूहाबद्दल एक शब्द"]
+}
+}

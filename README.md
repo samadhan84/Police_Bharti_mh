@@ -11,6 +11,7 @@ Mock-exam platform for the Maharashtra Police Bharti written test, for **web, Wi
 | DB | MySQL 8 (Pomelo EF provider) – tables are auto-created, questions auto-seeded |
 
 ## Features
+- **Bilingual: Marathi (default) + English.** One-tap toggle on every screen, including mid-exam. Questions, options, explanations, subject/topic names, result pages, analytics and the "what to improve" advice all exist in both languages. Results/analytics have a **Print / Save as PDF** button for a Marathi (or English) report.
 - Register / login (BCrypt-hashed passwords, JWT).
 - **Full mock**: 100 Qs, 100 marks, 90 min, 25 each from Arithmetic, Reasoning, GK & Current Affairs, Marathi Grammar; no negative marking. Timer, question palette, mark-for-review, auto-submit, progress survives refresh.
 - **Subject practice** (15 Qs).
@@ -57,7 +58,12 @@ npm run android:open       # build/run APK from Android Studio
 ```
 
 ## Adding questions
-Append rows to `questions.json` under a subject: `[topic, text, correctAnswer, wrong1, wrong2, wrong3, explanation, difficulty(1-3)]`. Put the correct answer first – the seeder shuffles options. Seeding runs only on an empty `Questions` table; for a live DB, insert via SQL or add an admin import endpoint.
+Each question lives in two files under `SeedData/`, matched by position within the subject:
+- `questions.json` row: `[topic, text, correctAnswer, wrong1, wrong2, wrong3, explanation, difficulty(1-3)]` (English for Arithmetic/Reasoning/GK, Marathi for Marathi Grammar).
+- `translations.json` row: `[text, correctAnswer, wrong1, wrong2, wrong3, explanation]` in the *other* language.
+- New topics need an `[english, marathi]` entry in `names.json`.
+
+Put the correct answer first – the seeder shuffles options (same order in both languages). Seeding runs only on an empty `Questions` table. **Upgrading from the earlier English-only version:** the schema changed, so drop and recreate the `police_bharti` database once (no migrations yet).
 
 ## Roadmap (suggested)
-Admin panel & bulk import, bilingual (Marathi/English) questions, EF migrations, per-district previous-year paper sets, spaced-repetition of wrong answers, leaderboard, physical-test (PET) tracker, Play Store release.
+Admin panel & bulk import, EF migrations, per-district previous-year paper sets, spaced-repetition of wrong answers, leaderboard, physical-test (PET) tracker, Play Store release.

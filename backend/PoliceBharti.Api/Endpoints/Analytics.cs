@@ -10,7 +10,7 @@ public static class AnalyticsEndpoints
     const int WeakBelow = 60;
     const int MinSample = 3;
 
-    record Row(string Subject, string Topic, int Difficulty, bool IsCorrect, bool Skipped, int TimeSec);
+    record Row(string Subject, string SubjectMr, string Topic, string TopicMr, int Difficulty, bool IsCorrect, bool Skipped, int TimeSec);
 
     public static void MapAnalytics(this WebApplication app)
     {
@@ -19,38 +19,35 @@ public static class AnalyticsEndpoints
             var uid = ctx.User.UserId();
             var attempts = await db.Attempts.Where(a => a.UserId == uid && a.SubmittedAt != null)
                 .OrderBy(a => a.SubmittedAt).ToListAsync();
+            if (attempts.Count == 0) return Results.Ok(new { hasData = false });
 
             var rows = await db.AttemptAnswers
                 .Where(x => x.Attempt.UserId == uid && x.Attempt.SubmittedAt != null)
-                .Select(x => new Row(x.Question.Subject, x.Question.Topic, x.Question.Difficulty,
-                    x.IsCorrect, x.Selected == null, x.TimeSec)).ToListAsync();
-
-            if (attempts.Count == 0)
-                return Results.Ok(new { hasData = false });
+                .Select(x => new Row(x.Question.Subject, x.Question.SubjectMr, x.Question.Topic, x.Question.TopicMr,
+                    x.Question.Difficulty, x.IsCorrect, x.Selected == null, x.TimeSec)).ToListAsync();
 
             static double Pct(int a, int b) => b == 0 ? 0 : Math.Round(100.0 * a / b, 1);
 
             var full = attempts.Where(a => a.Mode == "full").ToList();
             var trend = attempts.Select(a => new { a.Id, date = a.SubmittedAt, a.Mode, a.Subject, percent = Pct(a.Correct, a.Total) }).ToList();
 
-            var subjects = rows.GroupBy(r => r.Subject).Select(g => new
+            var subjects = rows.GroupBy(r => (r.Subject, r.SubjectMr)).Select(g => new
             {
-                subject = g.Key, total = g.Count(), correct = g.Count(r => r.IsCorrect),
-                skipped = g.Count(r => r.Skipped), accuracy = Pct(g.Count(r => r.IsCorrect), g.Count()),
-                avgTimeSec = Math.Round(g.Average(r => r.TimeSec), 1),
+                subject = g.Key.Subject, name = new Bi<string>(g.Key.SubjectMr, g.Key.Subject),
+                total = g.Count(), correct = g.Count(r => r.IsCorrect), skipped = g.Count(r => r.Skipped),
+                accuracy = Pct(g.Count(r => r.IsCorrect), g.Count()), avgTimeSec = Math.Round(g.Average(r => r.TimeSec), 1),
             }).OrderBy(s => s.accuracy).ToList();
 
-            var topics = rows.GroupBy(r => (r.Subject, r.Topic)).Select(g => new
+            var topics = rows.GroupBy(r => (r.Subject, r.SubjectMr, r.Topic, r.TopicMr)).Select(g => new
             {
-                subject = g.Key.Subject, topic = g.Key.Topic, total = g.Count(),
-                correct = g.Count(r => r.IsCorrect), accuracy = Pct(g.Count(r => r.IsCorrect), g.Count()),
-                skipped = g.Count(r => r.Skipped),
+                subject = new Bi<string>(g.Key.SubjectMr, g.Key.Subject), topic = new Bi<string>(g.Key.TopicMr, g.Key.Topic),
+                total = g.Count(), correct = g.Count(r => r.IsCorrect),
+                accuracy = Pct(g.Count(r => r.IsCorrect), g.Count()), skipped = g.Count(r => r.Skipped),
             }).OrderBy(t => t.accuracy).ThenByDescending(t => t.total).ToList();
 
             var difficulty = rows.GroupBy(r => r.Difficulty).OrderBy(g => g.Key).Select(g => new
             {
-                level = g.Key == 1 ? "Easy" : g.Key == 2 ? "Medium" : "Hard",
-                total = g.Count(), accuracy = Pct(g.Count(r => r.IsCorrect), g.Count()),
+                level = g.Key, total = g.Count(), accuracy = Pct(g.Count(r => r.IsCorrect), g.Count()),
             }).ToList();
 
             var weak = topics.Where(t => t.total >= MinSample && t.accuracy < WeakBelow).Take(8).ToList();
@@ -60,31 +57,41 @@ public static class AnalyticsEndpoints
             var lastFull = full.LastOrDefault();
             var lastFullPct = lastFull is null ? (double?)null : Pct(lastFull.Correct, lastFull.Total);
 
-            // ---- advice ----
-            var tips = new List<string>();
+            // ---- advice, written in Marathi and English ----
+            var tips = new List<Bi<string>>();
+            void Tip(string mr, string en) => tips.Add(new(mr, en));
+
             if (lastFullPct is null)
-                tips.Add("Take a full 100-question mock to see how you perform under real exam timing.");
+                Tip("वेळेच्या मर्यादेत तुमची कामगिरी पाहण्यासाठी 100 प्रश्नांची पूर्ण सराव चाचणी द्या.",
+                    "Take a full 100-question mock to see how you perform under real exam timing.");
             else if (lastFullPct >= TargetPercent)
-                tips.Add($"Your last full mock ({lastFullPct}%) is at or above the ~{TargetPercent}% target. Keep taking mocks to stay consistent.");
+                Tip($"तुमची शेवटची पूर्ण चाचणी ({lastFullPct}%) ~{TargetPercent}% च्या लक्ष्यावर किंवा त्यापुढे आहे. सातत्य राखण्यासाठी सराव चाचण्या देत रहा.",
+                    $"Your last full mock ({lastFullPct}%) is at or above the ~{TargetPercent}% target. Keep taking mocks to stay consistent.");
             else
-                tips.Add($"Your last full mock was {lastFullPct}%. Aim for ~{TargetPercent}%+ (about {TargetPercent - lastFullPct:0.#} points more) — cut-offs are usually in the 65–76 range for General category and vary by district.");
+                Tip($"तुमची शेवटची पूर्ण चाचणी {lastFullPct}% होती. ~{TargetPercent}%+ चे लक्ष्य ठेवा (सुमारे {TargetPercent - lastFullPct:0.#} गुण अधिक) — सर्वसाधारण प्रवर्गाचा कट-ऑफ साधारणपणे 65–76 दरम्यान असतो व जिल्ह्यानुसार बदलतो.",
+                    $"Your last full mock was {lastFullPct}%. Aim for ~{TargetPercent}%+ (about {TargetPercent - lastFullPct:0.#} points more) — cut-offs are usually in the 65–76 range for General category and vary by district.");
 
             foreach (var s in subjects.Where(s => s.total >= MinSample && s.accuracy < WeakBelow))
-                tips.Add($"{s.subject}: accuracy is only {s.accuracy}%. Give it extra daily practice time.");
+                Tip($"{s.name.Mr}: अचूकता फक्त {s.accuracy}% आहे. या विषयाला दररोज जास्त वेळ द्या.",
+                    $"{s.name.En}: accuracy is only {s.accuracy}%. Give it extra daily practice time.");
             foreach (var t in weak)
-                tips.Add($"Revise '{t.topic}' ({t.subject}) — {t.correct}/{t.total} correct. Re-read the concept, then practise a topic-wise set.");
+                Tip($"'{t.topic.Mr}' ({t.subject.Mr}) ची उजळणी करा — {t.correct}/{t.total} बरोबर. संकल्पना पुन्हा वाचा आणि विषयनिहाय प्रश्नसंच सोडवा.",
+                    $"Revise '{t.topic.En}' ({t.subject.En}) — {t.correct}/{t.total} correct. Re-read the concept, then practise a topic-wise set.");
             foreach (var s in subjects.Where(s => s.total >= 10 && Pct(s.skipped, s.total) > 20))
-                tips.Add($"{s.subject}: you skip {Pct(s.skipped, s.total)}% of questions. There is no negative marking, so always attempt every question.");
-            var slow = subjects.Where(s => s.total >= 10 && s.avgTimeSec > 70).ToList();
-            foreach (var s in slow)
-                tips.Add($"{s.subject}: average {s.avgTimeSec:0}s per question is above the ~54s available. Practise speed (shortcuts / elimination).");
-            var hard = difficulty.FirstOrDefault(d => d.level == "Easy");
-            if (hard is not null && hard.total >= 10 && hard.accuracy < 80)
-                tips.Add($"You are missing easy questions ({hard.accuracy}% accuracy). Focus on accuracy and careful reading before attempting speed.");
+                Tip($"{s.name.Mr}: तुम्ही {Pct(s.skipped, s.total)}% प्रश्न सोडून देता. नकारात्मक गुणदान नसल्याने सर्व प्रश्न सोडवा.",
+                    $"{s.name.En}: you skip {Pct(s.skipped, s.total)}% of questions. There is no negative marking, so always attempt every question.");
+            foreach (var s in subjects.Where(s => s.total >= 10 && s.avgTimeSec > 70))
+                Tip($"{s.name.Mr}: प्रति प्रश्न सरासरी {s.avgTimeSec:0} सेकंद लागतात, उपलब्ध ~54 सेकंदांपेक्षा जास्त. वेग वाढवण्याचा सराव करा (शॉर्टकट / पर्याय वगळण्याची पद्धत).",
+                    $"{s.name.En}: average {s.avgTimeSec:0}s per question is above the ~54s available. Practise speed (shortcuts / elimination).");
+            var easy = difficulty.FirstOrDefault(d => d.level == 1);
+            if (easy is not null && easy.total >= 10 && easy.accuracy < 80)
+                Tip($"तुमचे सोपे प्रश्न चुकत आहेत ({easy.accuracy}% अचूकता). वेगापेक्षा आधी अचूकता आणि काळजीपूर्वक वाचनावर भर द्या.",
+                    $"You are missing easy questions ({easy.accuracy}% accuracy). Focus on accuracy and careful reading before attempting speed.");
             if (full.Count >= 3)
             {
-                var d = Pct(full[^1].Correct, full[^1].Total) - Pct(full[0].Correct, full[0].Total);
-                tips.Add(d >= 0 ? $"Great — your full-mock score improved by {d:0.#} points since your first mock." : $"Your latest full-mock score is {-d:0.#} points below your first. Review recent mistakes.");
+                var d = Math.Round(Pct(full[^1].Correct, full[^1].Total) - Pct(full[0].Correct, full[0].Total), 1);
+                if (d >= 0) Tip($"छान — पहिल्या चाचणीपासून तुमचा पूर्ण-चाचणी गुण {d} टक्क्यांनी वाढला आहे.", $"Great — your full-mock score improved by {d} points since your first mock.");
+                else Tip($"तुमचा ताजा पूर्ण-चाचणी गुण पहिल्यापेक्षा {-d} टक्क्यांनी कमी आहे. अलीकडील चुका तपासा.", $"Your latest full-mock score is {-d} points below your first. Review recent mistakes.");
             }
 
             return Results.Ok(new
@@ -92,11 +99,9 @@ public static class AnalyticsEndpoints
                 hasData = true,
                 summary = new
                 {
-                    attempts = attempts.Count, fullMocks = full.Count,
-                    overallAccuracy = overall,
+                    attempts = attempts.Count, fullMocks = full.Count, overallAccuracy = overall,
                     bestFullPercent = full.Count == 0 ? (double?)null : full.Max(a => Pct(a.Correct, a.Total)),
-                    lastFullPercent = lastFullPct, targetPercent = TargetPercent,
-                    questionsAnswered = rows.Count,
+                    lastFullPercent = lastFullPct, targetPercent = TargetPercent, questionsAnswered = rows.Count,
                 },
                 trend, subjects, topics, difficulty, weak, strong, recommendations = tips,
             });

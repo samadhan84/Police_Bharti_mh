@@ -34,7 +34,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await Seeder.RunAsync(db, Path.Combine(AppContext.BaseDirectory, "SeedData", "questions.json"));
+    await Seeder.RunAsync(db, Path.Combine(AppContext.BaseDirectory, "SeedData"));
 }
 
 app.UseCors();

@@ -18,8 +18,8 @@ public static class AttemptEndpoints
         var g = app.MapGroup("/api").RequireAuthorization();
 
         g.MapGet("/subjects", async (AppDbContext db) =>
-            await db.Questions.GroupBy(q => q.Subject)
-                .Select(x => new { subject = x.Key, questions = x.Count() }).ToListAsync());
+            await db.Questions.GroupBy(q => new { q.Subject, q.SubjectMr })
+                .Select(x => new { subject = x.Key.Subject, name = new Bi<string>(x.Key.SubjectMr, x.Key.Subject), questions = x.Count() }).ToListAsync());
 
         g.MapPost("/attempts", async (StartDto dto, HttpContext ctx, AppDbContext db) =>
         {
@@ -58,7 +58,11 @@ public static class AttemptEndpoints
             return Results.Ok(new
             {
                 attemptId = attempt.Id, durationSec = limitSec, startedAt = attempt.StartedAt,
-                questions = picked.Select(q => new { q.Id, q.Subject, q.Topic, text = q.Text, options = q.Options() }),
+                questions = picked.Select(q => new
+                {
+                    q.Id, subject = q.Subject, subjectName = q.Name(false), topic = q.Name(true),
+                    text = new Bi<string>(q.TextMr, q.Text), options = new Bi<string[]>(q.OptionsMr(), q.Options()),
+                }),
             });
         });
 
@@ -107,14 +111,15 @@ public static class AttemptEndpoints
                 a.Id, a.Mode, a.Subject, a.SubmittedAt, a.Total, a.Correct, a.Wrong, a.Skipped, a.TimeTakenSec,
                 bySubject = a.Answers.GroupBy(x => x.Question.Subject).Select(s => new
                 {
-                    subject = s.Key, total = s.Count(), correct = s.Count(x => x.IsCorrect),
+                    subject = s.Key, name = s.First().Question.Name(false), total = s.Count(), correct = s.Count(x => x.IsCorrect),
                 }),
                 review = a.Answers.OrderBy(x => x.Order).Select(x => new
                 {
-                    questionId = x.QuestionId, subject = x.Question.Subject, topic = x.Question.Topic,
-                    text = x.Question.Text, options = x.Question.Options(),
-                    selected = x.Selected, correct = x.Question.CorrectIndex,
-                    isCorrect = x.IsCorrect, explanation = x.Question.Explanation, timeSec = x.TimeSec,
+                    questionId = x.QuestionId, subject = x.Question.Name(false), topic = x.Question.Name(true),
+                    text = new Bi<string>(x.Question.TextMr, x.Question.Text),
+                    options = new Bi<string[]>(x.Question.OptionsMr(), x.Question.Options()),
+                    selected = x.Selected, correct = x.Question.CorrectIndex, isCorrect = x.IsCorrect,
+                    explanation = new Bi<string>(x.Question.ExplanationMr, x.Question.Explanation), timeSec = x.TimeSec,
                 }),
             });
         });

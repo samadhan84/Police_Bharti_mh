@@ -14,7 +14,7 @@ async function call(method, path, body) {
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new Error('Cannot reach the server. Check your connection / API address.');
+    throw new Error(localStorage.getItem('lang') === 'en' ? 'Cannot reach the server. Check your connection / API address.' : 'सर्व्हरशी संपर्क होऊ शकला नाही. इंटरनेट / API पत्ता तपासा.');
   }
   if (res.status === 401 && getToken()) { clearSession(); location.hash = '#/login'; }
   const data = await res.json().catch(() => ({}));

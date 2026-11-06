@@ -1,4 +1,5 @@
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { LangToggle, useLang } from './i18n.jsx';
 import { clearSession, getToken, getUser } from './api.js';
 import Login from './pages/Login.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -16,18 +17,19 @@ export default function App() {
   const { pathname } = useLocation();
   const inExam = pathname.startsWith('/exam');
   const user = getUser();
+  const { t } = useLang();
   return (
     <>
       {getToken() && !inExam && (
         <header className="topbar">
-          <b className="brand">🚓 पोलीस भरती Mock</b>
+          <b className="brand">🚓 {t('app')}</b>
           <nav>
-            <NavLink to="/">Home</NavLink>
-            <NavLink to="/history">Results</NavLink>
-            <NavLink to="/analytics">Analytics</NavLink>
+            <NavLink to="/">{t('home')}</NavLink>
+            <NavLink to="/history">{t('results')}</NavLink>
+            <NavLink to="/analytics">{t('analytics')}</NavLink>
           </nav>
-          <span className="who">{user?.name}
-            <button className="link" onClick={() => { clearSession(); nav('/login'); }}>Logout</button>
+          <span className="who"><LangToggle />{user?.name}
+            <button className="link" onClick={() => { clearSession(); nav('/login'); }}>{t('logout')}</button>
           </span>
         </header>
       )}
