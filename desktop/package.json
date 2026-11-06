@@ -1,0 +1,21 @@
+{
+  "name": "police-bharti-desktop",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.policebharti.mock",
+    "productName": "Police Bharti Mock",
+    "files": ["main.js", { "from": "../frontend/dist", "to": "app" }],
+    "win": { "target": "nsis" },
+    "mac": { "target": "dmg" },
+    "linux": { "target": "AppImage" }
+  },
+  "devDependencies": {
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.8"
+  }
+}

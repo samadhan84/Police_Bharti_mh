@@ -1,0 +1,6 @@
+{
+  "appId": "com.policebharti.mock",
+  "appName": "Police Bharti Mock",
+  "webDir": "dist",
+  "server": { "androidScheme": "http", "cleartextAllowed": true }
+}

@@ -1,0 +1,122 @@
+using Microsoft.EntityFrameworkCore;
+using PoliceBharti.Api.Data;
+
+namespace PoliceBharti.Api.Endpoints;
+
+public record StartDto(string Mode, string? Subject, int? Count);
+public record AnswerDto(int QuestionId, int? Selected, int TimeSec);
+public record SubmitDto(List<AnswerDto> Answers, int TimeTakenSec);
+
+public static class AttemptEndpoints
+{
+    // Pattern of the Maharashtra Police Bharti written test: 100 marks, 90 minutes, 4 subjects x 25.
+    public const int FullPerSubject = 25;
+    public const int FullMinutes = 90;
+
+    public static void MapAttempts(this WebApplication app)
+    {
+        var g = app.MapGroup("/api").RequireAuthorization();
+
+        g.MapGet("/subjects", async (AppDbContext db) =>
+            await db.Questions.GroupBy(q => q.Subject)
+                .Select(x => new { subject = x.Key, questions = x.Count() }).ToListAsync());
+
+        g.MapPost("/attempts", async (StartDto dto, HttpContext ctx, AppDbContext db) =>
+        {
+            var rng = new Random();
+            List<Question> picked;
+            int limitSec;
+            if (dto.Mode == "subject")
+            {
+                if (string.IsNullOrWhiteSpace(dto.Subject)) return Results.BadRequest(new { error = "Subject required." });
+                var count = Math.Clamp(dto.Count ?? 15, 5, 50);
+                var pool = await db.Questions.Where(q => q.Subject == dto.Subject).ToListAsync();
+                if (pool.Count == 0) return Results.BadRequest(new { error = "Unknown subject." });
+                picked = pool.OrderBy(_ => rng.Next()).Take(count).ToList();
+                limitSec = picked.Count * 54; // 90 min / 100 q
+            }
+            else
+            {
+                var all = await db.Questions.ToListAsync();
+                picked = all.GroupBy(q => q.Subject)
+                    .SelectMany(s => s.OrderBy(_ => rng.Next()).Take(FullPerSubject)).ToList();
+                // keep sections together (as in the real paper), shuffle inside each section
+                picked = picked.GroupBy(q => q.Subject).SelectMany(s => s.OrderBy(_ => rng.Next())).ToList();
+                limitSec = FullMinutes * 60;
+            }
+
+            var attempt = new Attempt
+            {
+                UserId = ctx.User.UserId(), Mode = dto.Mode == "subject" ? "subject" : "full",
+                Subject = dto.Mode == "subject" ? dto.Subject : null,
+                DurationLimitSec = limitSec, Total = picked.Count,
+                Answers = picked.Select((q, i) => new AttemptAnswer { QuestionId = q.Id, Order = i }).ToList(),
+            };
+            db.Attempts.Add(attempt);
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new
+            {
+                attemptId = attempt.Id, durationSec = limitSec, startedAt = attempt.StartedAt,
+                questions = picked.Select(q => new { q.Id, q.Subject, q.Topic, text = q.Text, options = q.Options() }),
+            });
+        });
+
+        g.MapPost("/attempts/{id:int}/submit", async (int id, SubmitDto dto, HttpContext ctx, AppDbContext db) =>
+        {
+            var a = await db.Attempts.Include(x => x.Answers).ThenInclude(x => x.Question)
+                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == ctx.User.UserId());
+            if (a is null) return Results.NotFound();
+            if (a.SubmittedAt is not null) return Results.Conflict(new { error = "Already submitted." });
+
+            var given = (dto.Answers ?? []).GroupBy(x => x.QuestionId).ToDictionary(x => x.Key, x => x.Last());
+            foreach (var ans in a.Answers)
+            {
+                given.TryGetValue(ans.QuestionId, out var d);
+                var sel = d?.Selected is >= 0 and < 4 ? d.Selected : null;
+                ans.Selected = sel;
+                ans.TimeSec = Math.Clamp(d?.TimeSec ?? 0, 0, 3600);
+                ans.IsCorrect = sel == ans.Question.CorrectIndex;
+            }
+            a.Correct = a.Answers.Count(x => x.IsCorrect);
+            a.Skipped = a.Answers.Count(x => x.Selected is null);
+            a.Wrong = a.Total - a.Correct - a.Skipped;
+            a.SubmittedAt = DateTime.UtcNow;
+            a.TimeTakenSec = Math.Clamp(dto.TimeTakenSec, 0, a.DurationLimitSec + 60);
+            await db.SaveChangesAsync();
+            return Results.Ok(new { attemptId = a.Id });
+        });
+
+        g.MapGet("/attempts", async (HttpContext ctx, AppDbContext db) =>
+        {
+            var uid = ctx.User.UserId();
+            return await db.Attempts.Where(a => a.UserId == uid && a.SubmittedAt != null)
+                .OrderByDescending(a => a.SubmittedAt)
+                .Select(a => new { a.Id, a.Mode, a.Subject, a.SubmittedAt, a.Total, a.Correct, a.Wrong, a.Skipped, a.TimeTakenSec })
+                .ToListAsync();
+        });
+
+        g.MapGet("/attempts/{id:int}", async (int id, HttpContext ctx, AppDbContext db) =>
+        {
+            var uid = ctx.User.UserId();
+            var a = await db.Attempts.Include(x => x.Answers).ThenInclude(x => x.Question)
+                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == uid && x.SubmittedAt != null);
+            if (a is null) return Results.NotFound();
+            return Results.Ok(new
+            {
+                a.Id, a.Mode, a.Subject, a.SubmittedAt, a.Total, a.Correct, a.Wrong, a.Skipped, a.TimeTakenSec,
+                bySubject = a.Answers.GroupBy(x => x.Question.Subject).Select(s => new
+                {
+                    subject = s.Key, total = s.Count(), correct = s.Count(x => x.IsCorrect),
+                }),
+                review = a.Answers.OrderBy(x => x.Order).Select(x => new
+                {
+                    questionId = x.QuestionId, subject = x.Question.Subject, topic = x.Question.Topic,
+                    text = x.Question.Text, options = x.Question.Options(),
+                    selected = x.Selected, correct = x.Question.CorrectIndex,
+                    isCorrect = x.IsCorrect, explanation = x.Question.Explanation, timeSec = x.TimeSec,
+                }),
+            });
+        });
+    }
+}
