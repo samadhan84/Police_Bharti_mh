@@ -33,6 +33,11 @@ Written test (per Maharashtra Police recruitment sources): 100 questions × 1 ma
 
 > **Question bank note:** `backend/PoliceBharti.Api/SeedData/questions.json` has ~114 *original* practice questions written in the style/topics of the exam. They are **not** copies of past papers. Add real previous-year questions you are licensed to use in the same JSON format (see below) – a production app needs hundreds more (target 1000+).
 
+## Run it on GitHub (no installs)
+**Codespaces:** on the repo page click **Code → Codespaces → Create codespace on `claude/police-bharti-mock-exam-bcue32`**. It builds a cloud dev machine with .NET, Node and MySQL, starts the API and web app automatically (first start takes a few minutes) and opens the app in a browser tab (port **5173**). If it doesn't open, use the **Ports** tab, or run `bash scripts/dev.sh` and check `/tmp/api.log`. Register `admin@policebharti.local` to get the admin panel.
+**CI:** every push runs `.github/workflows/ci.yml` – builds the API and web app and runs both smoke tests against a real MySQL (see the **Actions** tab).
+GitHub Pages cannot host this app (it needs the API + MySQL); for a public URL deploy the API to a host (Azure/Render/Railway + managed MySQL) and the built `frontend/dist` to any static host.
+
 ## Run locally
 ```bash
 # 1. MySQL

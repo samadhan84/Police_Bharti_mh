@@ -1,0 +1,45 @@
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpw
+          MYSQL_DATABASE: police_bharti
+          MYSQL_USER: pb_user
+          MYSQL_PASSWORD: pb_pass
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -prootpw" --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://localhost:5080
+      ConnectionStrings__Default: "Server=127.0.0.1;Port=3306;Database=police_bharti;User=pb_user;Password=pb_pass;"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 8.0.x }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - name: Build API
+        run: dotnet build backend/PoliceBharti.Api -c Release
+      - name: Build web app
+        run: cd frontend && npm ci && npm run build
+      - name: Start API
+        run: |
+          cd backend/PoliceBharti.Api
+          nohup dotnet run -c Release --no-build > /tmp/api.log 2>&1 &
+          for i in $(seq 1 40); do curl -sf http://localhost:5080/api/health && exit 0; sleep 2; done
+          cat /tmp/api.log; exit 1
+      - name: Student flow smoke test
+        run: backend/scripts/smoke.sh
+      - name: Admin import smoke test
+        run: backend/scripts/admin-smoke.sh
+      - name: API log on failure
+        if: failure()
+        run: cat /tmp/api.log

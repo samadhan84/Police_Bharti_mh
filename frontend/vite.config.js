@@ -2,4 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // base './' so the same build works from file:// (Electron) and Capacitor's local server.
-export default defineConfig({ base: './', plugins: [react()], server: { port: 5173 } });
+export default defineConfig({
+  base: './',
+  plugins: [react()],
+  server: { port: 5173, host: true, allowedHosts: true, proxy: { '/api': 'http://localhost:5080' } },
+});

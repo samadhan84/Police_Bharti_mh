@@ -1,0 +1,12 @@
+{
+  "name": "Police Bharti Mock",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/police_bharti_mh",
+  "features": { "ghcr.io/devcontainers/features/node:1": { "version": "20" } },
+  "forwardPorts": [5173],
+  "portsAttributes": { "5173": { "label": "Police Bharti web app", "onAutoForward": "openBrowserOnce" } },
+  "postCreateCommand": "cd frontend && npm install && cd ../backend/PoliceBharti.Api && dotnet restore",
+  "postStartCommand": "bash scripts/dev.sh",
+  "customizations": { "vscode": { "extensions": ["ms-dotnettools.csharp", "dbaeumer.vscode-eslint"] } }
+}
