@@ -1,4 +1,6 @@
 using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -7,12 +9,20 @@ using PoliceBharti.Api.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Hosts such as Railway/Render tell the app which port to listen on via $PORT.
+if (Environment.GetEnvironmentVariable("PORT") is { Length: > 0 } port)
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
+// Connection string: ConnectionStrings__Default, or Railway's MYSQLHOST/MYSQLPORT/MYSQLUSER/MYSQLPASSWORD/MYSQLDATABASE.
 var conn = builder.Configuration.GetConnectionString("Default")!;
+if (Environment.GetEnvironmentVariable("MYSQLHOST") is { Length: > 0 } mh)
+    conn = $"Server={mh};Port={Environment.GetEnvironmentVariable("MYSQLPORT") ?? "3306"};Database={Environment.GetEnvironmentVariable("MYSQLDATABASE")};" +
+           $"User={Environment.GetEnvironmentVariable("MYSQLUSER")};Password={Environment.GetEnvironmentVariable("MYSQLPASSWORD")};";
 builder.Services.AddDbContext<AppDbContext>(o => o.UseMySql(conn, new MySqlServerVersion(new Version(8, 0, 0))));
 
 var jwtKey = builder.Configuration["Jwt:Key"]!;
-if (!builder.Environment.IsDevelopment() && jwtKey.StartsWith("CHANGE_ME"))
-    throw new InvalidOperationException("Set Jwt__Key to a strong secret in production.");
+if (!builder.Environment.IsDevelopment() && (jwtKey.StartsWith("CHANGE_ME") || jwtKey.Length < 32))
+    throw new InvalidOperationException("Set Jwt__Key to a random secret of at least 32 characters in production.");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o =>
 {
@@ -29,6 +39,21 @@ builder.Services.AddAuthorization(o => o.AddPolicy("Admin", p => p.RequireRole("
 // Bearer-token auth (no cookies), so open CORS is safe and lets web, Electron and Capacitor clients connect.
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 
+// Behind the host's HTTPS proxy: trust X-Forwarded-* so client IPs (rate limiting) and scheme are correct.
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    o.KnownNetworks.Clear(); o.KnownProxies.Clear();
+});
+// Slow down password guessing: 20 login/register calls per minute per IP.
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = 429;
+    o.AddPolicy("auth", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1) }));
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -37,6 +62,10 @@ using (var scope = app.Services.CreateScope())
     await Seeder.RunAsync(db, Path.Combine(AppContext.BaseDirectory, "SeedData"));
 }
 
+app.UseForwardedHeaders();
+app.UseRateLimiter();
+app.UseDefaultFiles();   // serves the built React app from wwwroot (production container)
+app.UseStaticFiles();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -46,6 +75,7 @@ app.MapAuth();
 app.MapAttempts();
 app.MapAnalytics();
 app.MapAdmin();
+app.MapFallbackToFile("index.html");
 
 app.Run();
 

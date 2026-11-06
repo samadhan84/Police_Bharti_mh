@@ -1,5 +1,5 @@
 // Dev server proxies /api -> localhost:5080 (so Codespaces/remote dev work with one forwarded port).
-const BASE = (localStorage.getItem('apiUrl') || import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'http://localhost:5080/api')).replace(/\/$/, '');
+const BASE = (localStorage.getItem('apiUrl') || import.meta.env.VITE_API_URL || (location.protocol.startsWith('http') ? '/api' : 'http://localhost:5080/api')).replace(/\/$/, '');
 
 export const getToken = () => localStorage.getItem('token');
 export const getUser = () => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } };

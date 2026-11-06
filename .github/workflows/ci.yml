@@ -43,3 +43,34 @@ jobs:
       - name: API log on failure
         if: failure()
         run: cat /tmp/api.log
+
+  docker:
+    # Builds the production image and runs it exactly like a host would (Production mode, $PORT, strong JWT key).
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpw
+          MYSQL_DATABASE: police_bharti
+          MYSQL_USER: pb_user
+          MYSQL_PASSWORD: pb_pass
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -prootpw" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t pb-app .
+      - name: Run container
+        run: |
+          docker run -d --name pb --network host -e PORT=8080 \
+            -e MYSQLHOST=127.0.0.1 -e MYSQLPORT=3306 -e MYSQLUSER=pb_user -e MYSQLPASSWORD=pb_pass -e MYSQLDATABASE=police_bharti \
+            -e Jwt__Key=$(openssl rand -base64 48) -e Admin__Emails__0=owner@example.com pb-app
+          for i in $(seq 1 40); do curl -sf http://localhost:8080/api/health && break; sleep 2; done
+          curl -sf http://localhost:8080/ | grep -q "<title>Police Bharti"
+      - name: Smoke tests against container
+        run: backend/scripts/smoke.sh http://localhost:8080/api
+      - name: Container log on failure
+        if: failure()
+        run: docker logs pb
