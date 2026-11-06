@@ -18,7 +18,13 @@ var conn = builder.Configuration.GetConnectionString("Default")!;
 if (Environment.GetEnvironmentVariable("MYSQLHOST") is { Length: > 0 } mh)
     conn = $"Server={mh};Port={Environment.GetEnvironmentVariable("MYSQLPORT") ?? "3306"};Database={Environment.GetEnvironmentVariable("MYSQLDATABASE")};" +
            $"User={Environment.GetEnvironmentVariable("MYSQLUSER")};Password={Environment.GetEnvironmentVariable("MYSQLPASSWORD")};";
-builder.Services.AddDbContext<AppDbContext>(o => o.UseMySql(conn, new MySqlServerVersion(new Version(8, 0, 0))));
+// Database__Provider=sqlite -> single local file, no MySQL needed (for quick testing). Default is MySQL.
+var useSqlite = string.Equals(builder.Configuration["Database:Provider"], "sqlite", StringComparison.OrdinalIgnoreCase);
+builder.Services.AddDbContext<AppDbContext>(o =>
+{
+    if (useSqlite) o.UseSqlite("Data Source=" + (builder.Configuration["Database:SqlitePath"] ?? "policebharti-test.db"));
+    else o.UseMySql(conn, new MySqlServerVersion(new Version(8, 0, 0)));
+});
 
 var jwtKey = builder.Configuration["Jwt:Key"]!;
 if (!builder.Environment.IsDevelopment() && (jwtKey.StartsWith("CHANGE_ME") || jwtKey.Length < 32))
@@ -59,7 +65,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await Seeder.RunAsync(db, Path.Combine(AppContext.BaseDirectory, "SeedData"));
+    await Seeder.RunAsync(db, Path.Combine(AppContext.BaseDirectory, "SeedData"), builder.Configuration["Seed:CsvPath"]);
 }
 
 app.UseForwardedHeaders();

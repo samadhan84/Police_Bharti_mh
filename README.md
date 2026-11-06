@@ -41,6 +41,14 @@ See **[DEPLOY.md](DEPLOY.md)** – one Docker container (API + web app) + MySQL,
 **CI:** every push runs `.github/workflows/ci.yml` – builds the API and web app and runs both smoke tests against a real MySQL (see the **Actions** tab).
 GitHub Pages cannot host this app (it needs the API + MySQL); for a public URL deploy the API to a host (Azure/Render/Railway + managed MySQL) and the built `frontend/dist` to any static host.
 
+## Test mode: no MySQL, questions from a CSV
+For quick testing the API can use a single **SQLite file** instead of MySQL and load its questions from a **CSV file** (same format as the admin import template; a ready file with all 114 sample questions is in `backend/sample-data/questions.csv` – edit it in Excel to test your own).
+```bash
+bash scripts/dev-nodb.sh                 # or: bash scripts/dev-nodb.sh my-questions.csv
+```
+or set environment variables yourself: `Database__Provider=sqlite`, optional `Database__SqlitePath=file.db`, optional `Seed__CsvPath=/path/questions.csv`.
+The CSV is read **once, when the database file is first created** (delete the `.db` file to reload). Accounts and results are stored in the SQLite file, not in the CSV – a CSV can't safely handle many students writing at once. Don't use this mode for real students.
+
 ## Run locally
 ```bash
 # 1. MySQL

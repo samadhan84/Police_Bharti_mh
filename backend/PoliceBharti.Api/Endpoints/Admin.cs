@@ -87,7 +87,8 @@ public static class AdminEndpoints
 
             var subjects = (await db.Questions.Select(q => new { q.Subject, q.SubjectMr }).Distinct().ToListAsync())
                 .ToDictionary(x => x.Subject, x => x.SubjectMr, StringComparer.OrdinalIgnoreCase);
-            var seen = (await db.Questions.Select(q => q.Subject + "|" + q.Text).ToListAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            // duplicate = same subject + same English wording + same options (so look-alike questions with different options are fine)
+            var seen = (await db.Questions.Select(q => q.Subject + "|" + q.Text + "|" + q.OptionsJson).ToListAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             var results = new List<object>();
             var toAdd = new List<Question>();
@@ -97,7 +98,7 @@ public static class AdminEndpoints
                 var (q, errors) = Build(rows[i], subjects);
                 var label = rows[i].GetValueOrDefault("question_en") ?? "";
                 if (errors.Count > 0) { invalid++; results.Add(new { row = i + 1, status = "invalid", errors, preview = label }); continue; }
-                var key = q!.Subject + "|" + q.Text;
+                var key = q!.Subject + "|" + q.Text + "|" + q.OptionsJson;
                 if (!seen.Add(key)) { dup++; results.Add(new { row = i + 1, status = "duplicate", errors = new List<string>(), preview = label }); continue; }
                 toAdd.Add(q);
                 results.Add(new { row = i + 1, status = "valid", errors = new List<string>(), preview = label });
@@ -113,7 +114,7 @@ public static class AdminEndpoints
     }
 
     // ---------- parsing ----------
-    static List<Dictionary<string, string>> Parse(string format, string content)
+    internal static List<Dictionary<string, string>> Parse(string format, string content)
     {
         content = content.TrimStart('﻿');
         if (format.Equals("json", StringComparison.OrdinalIgnoreCase))
@@ -156,7 +157,7 @@ public static class AdminEndpoints
     }
 
     // ---------- validation ----------
-    static (Question?, List<string>) Build(Dictionary<string, string> r, Dictionary<string, string> subjects)
+    internal static (Question?, List<string>) Build(Dictionary<string, string> r, Dictionary<string, string> subjects)
     {
         var e = new List<string>();
         string G(string k) => r.TryGetValue(k, out var v) ? v.Trim() : "";

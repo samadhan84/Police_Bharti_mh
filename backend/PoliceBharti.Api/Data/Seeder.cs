@@ -14,10 +14,17 @@ public static class Seeder
     // names.json         : subject / topic display names as [english, marathi]
     // The correct answer is listed first; options are shuffled with one seeded permutation applied to
     // both languages, so the correct index is identical in Marathi and English.
-    public static async Task RunAsync(AppDbContext db, string dir)
+    public static async Task RunAsync(AppDbContext db, string dir, string? csvPath = null)
     {
         await db.Database.EnsureCreatedAsync();
         if (await db.Questions.AnyAsync()) return;
+
+        // Seed__CsvPath=/path/questions.csv -> load questions from a CSV (admin-template format) instead of the built-in set.
+        if (!string.IsNullOrWhiteSpace(csvPath))
+        {
+            await SeedFromCsvAsync(db, dir, csvPath);
+            return;
+        }
 
         var q = Load<Dictionary<string, List<JsonElement[]>>>(Path.Combine(dir, "questions.json"));
         var tr = Load<Dictionary<string, List<string[]>>>(Path.Combine(dir, "translations.json"));
@@ -49,6 +56,25 @@ public static class Seeder
             });
         }
         await db.SaveChangesAsync();
+    }
+
+    static async Task SeedFromCsvAsync(AppDbContext db, string dir, string csvPath)
+    {
+        if (!File.Exists(csvPath)) throw new FileNotFoundException("Seed:CsvPath not found: " + csvPath);
+        var names = Load<Dictionary<string, Dictionary<string, string[]>>>(Path.Combine(dir, "names.json"));
+        var subjects = names["subjects"].ToDictionary(k => k.Key, v => v.Value[1], StringComparer.OrdinalIgnoreCase);
+        var rows = Endpoints.AdminEndpoints.Parse("csv", File.ReadAllText(csvPath));
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int ok = 0, bad = 0;
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var (q, errors) = Endpoints.AdminEndpoints.Build(rows[i], subjects);
+            if (q is null) { bad++; Console.WriteLine($"[seed] row {i + 1} skipped: {string.Join("; ", errors)}"); continue; }
+            if (!seen.Add(q.Subject + "|" + q.Text + "|" + q.OptionsJson)) { bad++; Console.WriteLine($"[seed] row {i + 1} skipped: duplicate"); continue; }
+            db.Questions.Add(q); ok++;
+        }
+        await db.SaveChangesAsync();
+        Console.WriteLine($"[seed] loaded {ok} questions from {csvPath} ({bad} skipped)");
     }
 
     static T Load<T>(string path) => JsonSerializer.Deserialize<T>(File.ReadAllText(path))!;

@@ -74,3 +74,30 @@ jobs:
       - name: Container log on failure
         if: failure()
         run: docker logs pb
+
+  sqlite:
+    # "No database server" test mode: SQLite file + questions loaded from sample CSV.
+    runs-on: ubuntu-latest
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://localhost:5080
+      Database__Provider: sqlite
+      Database__SqlitePath: /tmp/test.db
+      Seed__CsvPath: ${{ github.workspace }}/backend/sample-data/questions.csv
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 8.0.x }
+      - run: dotnet build backend/PoliceBharti.Api -c Release
+      - name: Start API (no MySQL)
+        run: |
+          cd backend/PoliceBharti.Api
+          nohup dotnet run -c Release --no-build > /tmp/api.log 2>&1 &
+          for i in $(seq 1 40); do curl -sf http://localhost:5080/api/health && exit 0; sleep 2; done
+          cat /tmp/api.log; exit 1
+      - run: grep "\[seed\]" /tmp/api.log
+      - run: backend/scripts/smoke.sh
+      - run: backend/scripts/admin-smoke.sh
+      - name: API log on failure
+        if: failure()
+        run: cat /tmp/api.log

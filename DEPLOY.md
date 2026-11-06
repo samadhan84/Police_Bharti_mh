@@ -14,6 +14,8 @@ Free tiers change, so confirm on the sites below. As of my check: [Render free w
 4. Deploy. Render gives you `https://police-bharti-mock.onrender.com`. First build takes ~5–10 minutes.
 5. Open it → **register with your admin email first** → import questions in the **प्रशासन** tab → share the link.
 
+**Quickest test (no Aiven):** on Render set `Database__Provider=sqlite` instead of `ConnectionStrings__Default` (optionally `Seed__CsvPath` is not needed – the built-in questions load). It runs with no database at all, but Render's free disk is wiped whenever the app restarts or sleeps, so **all accounts and results disappear** – testing only.
+
 **Keep it awake (optional):** a free monitor such as UptimeRobot pinging `https://<your-app>/api/health` every 5 minutes reduces sleeping. Render does not officially support this, and it uses your free hours (one service ≈ 720 h, under the 750 h limit).
 
 **Not tested by me:** I could not create Render/Aiven accounts, so this path is untested end-to-end (the Docker image itself is tested in CI). If the first deploy fails, send me the Render log and I will fix it. TiDB Cloud's free tier is another MySQL-compatible option, but I have not verified EF Core works on it – use Aiven first.
