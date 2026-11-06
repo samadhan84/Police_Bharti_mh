@@ -1,5 +1,8 @@
 # पोलीस भरती Mock Test (Maharashtra Police Bharti)
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/samadhan84/Police_Bharti_mh/tree/claude/police-bharti-mock-exam-bcue32)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/samadhan84/Police_Bharti_mh/tree/claude/police-bharti-mock-exam-bcue32)
+
 Mock-exam platform for the Maharashtra Police Bharti written test, for **web, Windows/Mac/Linux desktop and Android**.
 
 | Layer | Tech |

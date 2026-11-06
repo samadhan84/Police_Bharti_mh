@@ -43,6 +43,17 @@ jobs:
       - name: API log on failure
         if: failure()
         run: cat /tmp/api.log
+      - name: Package ready-to-run build (API + web app)
+        run: |
+          dotnet publish backend/PoliceBharti.Api -c Release -o build-out
+          cp -r frontend/dist build-out/wwwroot
+          cp backend/sample-data/questions.csv build-out/sample-questions.csv
+          printf '%s\n' 'Run (needs .NET 8 runtime):' '  Linux/Mac: Database__Provider=sqlite ASPNETCORE_URLS=http://localhost:5080 ASPNETCORE_ENVIRONMENT=Development dotnet PoliceBharti.Api.dll' '  Windows PowerShell: $env:Database__Provider="sqlite"; $env:ASPNETCORE_ENVIRONMENT="Development"; $env:ASPNETCORE_URLS="http://localhost:5080"; dotnet PoliceBharti.Api.dll' 'Open http://localhost:5080  (admin: register admin@policebharti.local)' > build-out/RUN.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: police-bharti-build
+          path: build-out
+          retention-days: 30
 
   docker:
     # Builds the production image and runs it exactly like a host would (Production mode, $PORT, strong JWT key).
