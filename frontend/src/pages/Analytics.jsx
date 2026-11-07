@@ -15,6 +15,12 @@ export default function Analytics() {
   const [d, setD] = useState(null);
   const [err, setErr] = useState('');
   useEffect(() => { setD(null); setErr(''); api.analytics(bank).then(setD).catch((e) => setErr(e.message)); }, [bank]);
+  const [ai, setAi] = useState(null);      // null = loading, false = unavailable, object = AI report
+  const [aiErr, setAiErr] = useState('');
+  useEffect(() => {
+    setAi(null); setAiErr('');
+    api.analyticsAi(bank).then((r) => setAi(r.hasData === false ? false : r.report)).catch((e) => { setAi(false); setAiErr(e.message); });
+  }, [bank]);
   const picker = banks.length > 0 && (
     <div className="tabs noprint">
       <button className={'tab' + (!bank ? ' on' : '')} onClick={() => setSp({})}>{t('cuOfficial')}</button>
@@ -45,11 +51,24 @@ export default function Analytics() {
         <div className="card stat"><div className="big">{s.questionsAnswered}</div><div className="muted">{t('qsAttempted')}</div></div>
       </div>
 
-      <div className="card reco">
+      {ai === null && <div className="card"><p className="muted">⏳ {t('aiAnalysing')}</p></div>}
+      {ai && (
+        <div className="card reco">
+          <h3>{t('aiAnalysis')}</h3>
+          <p>{L(ai.overall)}</p>
+          {ai.strengths?.length > 0 && <><h4>{t('aiStrengths')}</h4><ul>{ai.strengths.map((x, i) => <li key={i}>{L(x)}</li>)}</ul></>}
+          {ai.improvements?.length > 0 && <><h4>{t('aiImprove')}</h4><ul>{ai.improvements.map((x, i) => <li key={i}>{L(x)}</li>)}</ul></>}
+          {ai.what_to_study?.length > 0 && <><h4>{t('aiStudy')}</h4><ol>{ai.what_to_study.map((x, i) => <li key={i}><b>{L(x.topic)}</b> — {L(x.what)}</li>)}</ol></>}
+          {ai.plan?.length > 0 && <><h4>{t('aiPlan')}</h4><ul>{ai.plan.map((x, i) => <li key={i}>{L(x)}</li>)}</ul></>}
+        </div>
+      )}
+      {ai === false && aiErr && !/not switched on/i.test(aiErr) && <p className="muted small">{t('aiUnavailable')}</p>}
+
+      {ai === false && <div className="card reco">
         <h3>{t('improve')}</h3>
         <ul>{d.recommendations.map((x, i) => <li key={i}>{L(x)}</li>)}</ul>
         {!d.isCustom && <p className="muted small">{t('target')} {s.targetPercent}% — {t('targetNote')}</p>}
-      </div>
+      </div>}
 
       <div className="card">
         <h3>{t('trend')}</h3>

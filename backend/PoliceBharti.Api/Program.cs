@@ -63,7 +63,12 @@ builder.Services.AddRateLimiter(o =>
     o.AddPolicy("upload", ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 15, Window = TimeSpan.FromMinutes(10) }));
+    // AI tests / AI analysis cost money: 12 per hour per signed-in student (falls back to the IP).
+    o.AddPolicy("aitest", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 12, Window = TimeSpan.FromHours(1) }));
 });
+builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 
@@ -74,12 +79,12 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseForwardedHeaders();
-app.UseRateLimiter();
 app.UseDefaultFiles();   // serves the built React app from wwwroot (production container)
 app.UseStaticFiles();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();    // after authentication so per-student limits can see who is calling
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 app.MapAuth();
@@ -87,6 +92,8 @@ app.MapAttempts();
 app.MapAnalytics();
 app.MapAdmin();
 app.MapCustom();
+app.MapAiTest();
+app.MapAiAnalytics();
 app.MapFallbackToFile("index.html");
 
 app.Run();

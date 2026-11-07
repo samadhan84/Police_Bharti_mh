@@ -110,3 +110,8 @@ The **Custom / माझा प्रश्नसंच** tab lets a student upl
 - If the file has no answer key, the AI works out answers and flags them; the preview makes the user confirm/change every answer before saving.
 - Limits: 8 files / 20 MB per upload (images 5 MB), 80 questions read per upload, 1000 per bank, 20 banks per user; uploads are rate-limited (15 / 10 min / IP).
 - Existing databases are upgraded automatically on start (new `CustomBanks` table and `BankId` columns).
+
+## AI test and AI analysis (needs the Anthropic key)
+- **New AI Test** (dashboard): every click makes the AI write brand-new bilingual questions (10 / 15 / 25, spread over the four subjects) and starts a normal test on them. They are saved in the student's private **AI Practice** bank (Custom tab), so results, answer review and analytics work as usual. AI-written questions can occasionally be wrong - the review screen shows the explanation so students can spot it.
+- **AI analysis** (Analytics page): the numbers and charts are computed from the real results; the AI then writes the analysis, strengths, improvements, **what to study** and a **7-day study plan** (Marathi + English). Only aggregate statistics are sent to the AI (no name, e-mail or question text). The result is cached until the student finishes another test. If the AI is unavailable the page falls back to the built-in rule-based tips.
+- Both need `Anthropic__ApiKey` on the server (Render → Environment). Without it, "New AI Test" shows a clear message and analytics use the built-in tips. Cost control: 12 AI calls per student per hour.

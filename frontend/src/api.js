@@ -33,6 +33,8 @@ export const api = {
   attempt: (id) => call('GET', `/attempts/${id}`),
   analytics: (bank) => call('GET', '/analytics' + (bank ? '?bank=' + bank : '')),
   customStatus: () => call('GET', '/custom/status'),
+  aiTest: (b) => call('POST', '/ai-test', b),
+  analyticsAi: (bank) => call('GET', '/analytics/ai' + (bank ? '?bank=' + bank : '')),
   customBanks: () => call('GET', '/custom/banks'),
   customSave: (b) => call('POST', '/custom/banks', b),
   customDelete: (id) => call('DELETE', '/custom/banks/' + id),

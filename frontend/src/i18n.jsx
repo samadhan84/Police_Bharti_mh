@@ -87,6 +87,14 @@ const STR = {
   clearResp: { mr: 'उत्तर पुसा', en: 'Clear Response' }, notVisited: { mr: 'पाहिलेले नाही', en: 'Not Visited' }, notAnswered: { mr: 'उत्तर दिले नाही', en: 'Not Answered' },
   markedLbl: { mr: 'पुनरावलोकनासाठी', en: 'Marked for Review' }, ansMarked: { mr: 'उत्तर दिले व पुनरावलोकनासाठी', en: 'Answered & Marked for Review' },
   qNo: { mr: 'प्रश्न क्र.', en: 'Question No.' }, sections: { mr: 'विभाग', en: 'Sections' }, paletteOf: { mr: 'प्रश्न पॅलेट', en: 'Question Palette' },
+  aiTestTitle: { mr: '✨ नवीन AI चाचणी', en: '✨ New AI Test' },
+  aiTestDesc: { mr: 'प्रत्येक वेळी AI तुमच्यासाठी नवीन प्रश्न तयार करते — प्रत्येक चाचणीत वेगळे प्रश्न.', en: 'Every time, the AI writes brand-new questions for you — different questions in every test.' },
+  aiStart: { mr: 'नवीन AI चाचणी सुरू करा', en: 'Start new AI test' }, aiWriting: { mr: 'AI नवीन प्रश्न तयार करत आहे… (सुमारे ३०-६० सेकंद)', en: 'AI is writing new questions… (about 30–60 seconds)' },
+  aiQs: { mr: 'प्रश्न', en: 'questions' },
+  aiAnalysis: { mr: '🤖 AI विश्लेषण', en: '🤖 AI analysis' }, aiAnalysing: { mr: 'AI तुमच्या कामगिरीचे विश्लेषण करत आहे…', en: 'AI is analysing your performance…' },
+  aiStrengths: { mr: '💪 तुमची ताकद', en: '💪 Your strengths' }, aiImprove: { mr: '🎯 काय सुधारावे', en: '🎯 What to improve' },
+  aiStudy: { mr: '📚 काय अभ्यास करावा', en: '📚 What to study' }, aiPlan: { mr: '🗓 ७ दिवसांचा अभ्यास आराखडा', en: '🗓 7-day study plan' },
+  aiUnavailable: { mr: 'AI विश्लेषण सध्या उपलब्ध नाही; खालील साधे विश्लेषण पहा.', en: 'AI analysis is not available right now; see the basic analysis below.' },
   netErr: { mr: 'सर्व्हरशी संपर्क होऊ शकला नाही. इंटरनेट / API पत्ता तपासा.', en: 'Cannot reach the server. Check your connection / API address.' },
 };
 
@@ -99,7 +107,7 @@ export function LangProvider({ children }) {
   const L = (bi) => (bi ? bi[lang] ?? bi.en : '');          // pick from an API { mr, en } value
   const subj = (key) => STR['subj_' + key]?.[lang] ?? key;   // subject key -> localised name (custom subjects fall back to the key)
   // Title of a finished attempt: full mock, custom bank (with optional subject), or an official subject.
-  const attemptLabel = (r) => r.mode === 'full' ? t('fullMock') : r.mode === 'custom' ? (r.bankName || t('custom')) + (r.subject ? ' · ' + r.subject : '') : subj(r.subject);
+  const attemptLabel = (r) => r.mode === 'full' ? t('fullMock') : (r.mode === 'custom' || r.mode === 'ai') ? (r.bankName || t('custom')) + (r.subject ? ' · ' + r.subject : '') : subj(r.subject);
   const dt = (iso) => new Date(iso + 'Z').toLocaleString(lang === 'mr' ? 'mr-IN' : 'en-IN');
   return <Ctx.Provider value={{ lang, setLang, t, L, subj, dt, attemptLabel }}>{children}</Ctx.Provider>;
 }
