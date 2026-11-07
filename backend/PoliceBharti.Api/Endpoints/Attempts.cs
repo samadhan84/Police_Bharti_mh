@@ -35,7 +35,8 @@ public static class AttemptEndpoints
                 var pool = await db.Questions.Where(q => q.BankId == bank.Id && (string.IsNullOrEmpty(dto.Subject) || q.Subject == dto.Subject)).ToListAsync();
                 if (pool.Count == 0) return Results.BadRequest(new { error = "No questions in this bank." });
                 var count = Math.Clamp(dto.Count ?? Math.Min(pool.Count, 25), 1, Math.Min(pool.Count, 100));
-                picked = pool.OrderBy(_ => rng.Next()).Take(count).ToList();
+                // keep each subject together (like the sections of the real paper), shuffled inside the section
+                picked = pool.OrderBy(_ => rng.Next()).Take(count).GroupBy(q => q.Subject).SelectMany(s => s).ToList();
                 limitSec = picked.Count * 60;
                 bankId = bank.Id;
             }

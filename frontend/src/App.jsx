@@ -18,6 +18,7 @@ export default function App() {
   const nav = useNavigate();
   const { pathname } = useLocation();
   const inExam = pathname.startsWith('/exam');
+  const wide = inExam || pathname === '/login';
   const user = getUser();
   const { t } = useLang();
   return (
@@ -37,7 +38,7 @@ export default function App() {
           </span>
         </header>
       )}
-      <main className={inExam ? 'wide' : ''}>
+      <main className={wide ? 'wide' : ''}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Guard><Dashboard /></Guard>} />
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      <footer className="site-footer">Created By: Gaurav Sonawane</footer>
     </>
   );
 }

@@ -21,18 +21,20 @@ export default function Login() {
   }
 
   return (
-    <form className="card auth" onSubmit={submit}>
-      <div><LangToggle /></div>
-      <h1>🚓 {t('app')}</h1>
-      <p className="muted">{t('tagline')}</p>
-      {mode === 'register' && <input placeholder={t('fullName')} value={f.name} onChange={set('name')} required />}
-      <input type="email" placeholder={t('email')} value={f.email} onChange={set('email')} required />
-      <input type="password" placeholder={t('password')} value={f.password} onChange={set('password')} required minLength={6} />
-      {err && <div className="error">{err}</div>}
-      <button className="btn primary" disabled={busy}>{busy ? t('wait') : mode === 'login' ? t('login') : t('createAcc')}</button>
-      <button type="button" className="link" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
-        {mode === 'login' ? t('newHere') : t('haveAcc')}
-      </button>
-    </form>
+    <div className="login-page">
+      <header className="cbt-top"><b className="cbt-title">🚓 {t('app')}</b><LangToggle /></header>
+      <form className="card auth" onSubmit={submit}>
+        <div className="panel-title">{mode === 'login' ? t('login') : t('createAcc')}</div>
+        <p className="muted">{t('tagline')}</p>
+        {mode === 'register' && <input placeholder={t('fullName')} value={f.name} onChange={set('name')} required />}
+        <input type="email" placeholder={t('email')} value={f.email} onChange={set('email')} required />
+        <input type="password" placeholder={t('password')} value={f.password} onChange={set('password')} required minLength={6} />
+        {err && <div className="error">{err}</div>}
+        <button className="btn primary" disabled={busy}>{busy ? t('wait') : mode === 'login' ? t('login') : t('createAcc')}</button>
+        <button type="button" className="link" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
+          {mode === 'login' ? t('newHere') : t('haveAcc')}
+        </button>
+      </form>
+    </div>
   );
 }

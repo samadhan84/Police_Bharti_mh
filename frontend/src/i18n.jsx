@@ -83,6 +83,10 @@ const STR = {
   cuAllSubjects: { mr: 'सर्व विषय', en: 'All subjects' }, cuOfficial: { mr: 'अधिकृत चाचण्या', en: 'Official tests' },
   cuCustomCard: { mr: 'स्वतःचे प्रश्न अपलोड करून त्यावर चाचणी द्या (PDF / फोटो / टेक्स्ट).', en: 'Upload your own questions (PDF / photo / text) and test yourself.' },
   cuOpen: { mr: 'माझा प्रश्नसंच उघडा', en: 'Open my banks' }, cuPrivate: { mr: 'हे प्रश्न फक्त तुम्हालाच दिसतात.', en: 'These questions are visible only to you.' },
+  timeLeft: { mr: 'उरलेला वेळ', en: 'Time Left' }, saveNext: { mr: 'सेव्ह करा व पुढे', en: 'Save & Next' }, markNext: { mr: 'पुनरावलोकनासाठी चिन्हांकित करा व पुढे', en: 'Mark for Review & Next' },
+  clearResp: { mr: 'उत्तर पुसा', en: 'Clear Response' }, notVisited: { mr: 'पाहिलेले नाही', en: 'Not Visited' }, notAnswered: { mr: 'उत्तर दिले नाही', en: 'Not Answered' },
+  markedLbl: { mr: 'पुनरावलोकनासाठी', en: 'Marked for Review' }, ansMarked: { mr: 'उत्तर दिले व पुनरावलोकनासाठी', en: 'Answered & Marked for Review' },
+  qNo: { mr: 'प्रश्न क्र.', en: 'Question No.' }, sections: { mr: 'विभाग', en: 'Sections' }, paletteOf: { mr: 'प्रश्न पॅलेट', en: 'Question Palette' },
   netErr: { mr: 'सर्व्हरशी संपर्क होऊ शकला नाही. इंटरनेट / API पत्ता तपासा.', en: 'Cannot reach the server. Check your connection / API address.' },
 };
 
