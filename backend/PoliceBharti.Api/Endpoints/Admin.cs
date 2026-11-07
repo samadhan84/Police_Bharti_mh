@@ -37,8 +37,8 @@ public static class AdminEndpoints
         // ---- overview ----
         g.MapGet("/stats", async (AppDbContext db) => new
         {
-            total = await db.Questions.CountAsync(),
-            subjects = await db.Questions.GroupBy(q => new { q.Subject, q.SubjectMr })
+            total = await db.Questions.CountAsync(q => q.BankId == null),
+            subjects = await db.Questions.Where(q => q.BankId == null).GroupBy(q => new { q.Subject, q.SubjectMr })
                 .Select(x => new { subject = x.Key.Subject, name = new Bi<string>(x.Key.SubjectMr, x.Key.Subject), count = x.Count() }).ToListAsync(),
             users = await db.Users.CountAsync(),
             attempts = await db.Attempts.CountAsync(a => a.SubmittedAt != null),
@@ -47,7 +47,7 @@ public static class AdminEndpoints
         // ---- browse ----
         g.MapGet("/questions", async (AppDbContext db, string? subject, string? q, int page = 1) =>
         {
-            var query = db.Questions.AsQueryable();
+            var query = db.Questions.Where(x => x.BankId == null);
             if (!string.IsNullOrWhiteSpace(subject)) query = query.Where(x => x.Subject == subject);
             if (!string.IsNullOrWhiteSpace(q)) query = query.Where(x => x.Text.Contains(q) || x.TextMr.Contains(q) || x.Topic.Contains(q) || x.TopicMr.Contains(q));
             var total = await query.CountAsync();
@@ -67,7 +67,7 @@ public static class AdminEndpoints
 
         g.MapDelete("/questions/{id:int}", async (int id, AppDbContext db) =>
         {
-            var qn = await db.Questions.FindAsync(id);
+            var qn = await db.Questions.FirstOrDefaultAsync(x => x.Id == id && x.BankId == null);
             if (qn is null) return Results.NotFound();
             if (await db.AttemptAnswers.AnyAsync(a => a.QuestionId == id))
                 return Results.Conflict(new { error = "This question has already been used in student attempts and cannot be deleted. / हा प्रश्न विद्यार्थ्यांच्या चाचण्यांमध्ये वापरला गेला आहे, त्यामुळे हटवता येणार नाही." });
@@ -85,10 +85,10 @@ public static class AdminEndpoints
             if (rows.Count == 0) return Results.BadRequest(new { error = "No rows found. / फाईलमध्ये एकही ओळ सापडली नाही." });
             if (rows.Count > 2000) return Results.BadRequest(new { error = "Max 2000 rows per import. / एका वेळी कमाल 2000 ओळी." });
 
-            var subjects = (await db.Questions.Select(q => new { q.Subject, q.SubjectMr }).Distinct().ToListAsync())
+            var subjects = (await db.Questions.Where(q => q.BankId == null).Select(q => new { q.Subject, q.SubjectMr }).Distinct().ToListAsync())
                 .ToDictionary(x => x.Subject, x => x.SubjectMr, StringComparer.OrdinalIgnoreCase);
             // duplicate = same subject + same English wording + same options (so look-alike questions with different options are fine)
-            var seen = (await db.Questions.Select(q => q.Subject + "|" + q.Text + "|" + q.OptionsJson).ToListAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var seen = (await db.Questions.Where(q => q.BankId == null).Select(q => q.Subject + "|" + q.Text + "|" + q.OptionsJson).ToListAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             var results = new List<object>();
             var toAdd = new List<Question>();

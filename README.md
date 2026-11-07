@@ -75,7 +75,13 @@ cd ../desktop && npm install && npm start      # run
 npm run dist                                   # installer (.exe / .dmg / AppImage)
 ```
 
-## Android (Capacitor)
+## Android APK built on GitHub (no Android Studio)
+1. Deploy the server first (see [DEPLOY.md](DEPLOY.md)) – the phone app is only the front end and needs a public URL.
+2. On GitHub: **Actions → Android APK → Run workflow**, enter your server URL (or save it once as repo variable `API_URL`).
+3. After ~5 minutes download `PoliceBharti.apk` from the run's **Artifacts**, or from **Releases → "Android app (latest build)"** straight on your phone, and install it (allow "install unknown apps" for your browser).
+It is a debug-signed APK – fine for sideloading/testing; publishing on Google Play needs a release-signed build.
+
+## Android (Capacitor) – manual build
 Requires Android Studio + JDK 17.
 ```bash
 cd frontend
@@ -96,3 +102,11 @@ Put the correct answer first – the seeder shuffles options (same order in both
 
 ## Roadmap (suggested)
 Admin panel & bulk import, EF migrations, per-district previous-year paper sets, spaced-repetition of wrong answers, leaderboard, physical-test (PET) tracker, Play Store release.
+
+## Custom question banks (upload your own questions)
+The **Custom / माझा प्रश्नसंच** tab lets a student upload their own questions as **PDF, photo (JPG/PNG/WEBP) or text**, review them, save them as a *private* bank and take tests on it. Results and **Analytics** work as for the official tests (use the tabs at the top of Analytics to switch between *Official* and each custom bank).
+- **PDF / images** are read by the Claude API, which also detects subject, topic and difficulty. Set `Anthropic__ApiKey` (or `ANTHROPIC_API_KEY`) on the server; optional `Anthropic__Model` (default `claude-sonnet-5-5`). Without a key, PDF/image upload is refused with a clear message.
+- **Plain text** also works with no key, using an offline parser: `1. question` / `A) … D) …` / `Answer: B` (Marathi `अ) ब) क) ड)` and `उत्तर:` are understood). Subject/topic are then "General".
+- If the file has no answer key, the AI works out answers and flags them; the preview makes the user confirm/change every answer before saving.
+- Limits: 8 files / 20 MB per upload (images 5 MB), 80 questions read per upload, 1000 per bank, 20 banks per user; uploads are rate-limited (15 / 10 min / IP).
+- Existing databases are upgraded automatically on start (new `CustomBanks` table and `BankId` columns).

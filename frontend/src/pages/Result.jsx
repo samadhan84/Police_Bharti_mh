@@ -6,7 +6,7 @@ import { useLang } from '../i18n.jsx';
 
 export default function Result() {
   const { id } = useParams();
-  const { t, L, lang, subj, dt } = useLang();
+  const { t, L, lang, dt, attemptLabel } = useLang();
   const [r, setR] = useState(null);
   const [err, setErr] = useState('');
   const [filter, setFilter] = useState('all');
@@ -25,7 +25,7 @@ export default function Result() {
         <h1>{t('reportTitle')}</h1>
         <p>{t('candidate')}: {getUser()?.name} · {dt(r.submittedAt)}</p>
       </div>
-      <h2>{t('result')} — {r.mode === 'full' ? t('fullMock') : subj(r.subject)}</h2>
+      <h2>{t('result')} — {attemptLabel(r)}</h2>
       <div className="grid stats">
         <div className="card stat"><div className="big">{r.correct}/{r.total}</div><div className="muted">{t('score')} ({pct}%)</div></div>
         <div className="card stat"><div className="big ok">{r.correct}</div><div className="muted">{t('correct')}</div></div>

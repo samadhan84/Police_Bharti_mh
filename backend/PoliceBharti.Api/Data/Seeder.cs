@@ -17,7 +17,8 @@ public static class Seeder
     public static async Task RunAsync(AppDbContext db, string dir, string? csvPath = null)
     {
         await db.Database.EnsureCreatedAsync();
-        if (await db.Questions.AnyAsync()) return;
+        await UpgradeAsync(db);
+        if (await db.Questions.AnyAsync(q => q.BankId == null)) return;
 
         // Seed__CsvPath=/path/questions.csv -> load questions from a CSV (admin-template format) instead of the built-in set.
         if (!string.IsNullOrWhiteSpace(csvPath))
@@ -56,6 +57,34 @@ public static class Seeder
             });
         }
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// EnsureCreated never alters an existing database, so databases created before the "custom bank" feature
+    /// get the new table/columns here. Every statement is idempotent (a failure just means it already exists).
+    /// </summary>
+    static async Task UpgradeAsync(AppDbContext db)
+    {
+        string[] sql = db.Database.IsSqlite()
+            ?
+            [
+                "CREATE TABLE IF NOT EXISTS CustomBanks (Id INTEGER PRIMARY KEY AUTOINCREMENT, UserId INTEGER NOT NULL, Name TEXT NOT NULL, CreatedAt TEXT NOT NULL)",
+                "CREATE INDEX IF NOT EXISTS IX_CustomBanks_UserId ON CustomBanks (UserId)",
+                "ALTER TABLE Questions ADD COLUMN BankId INTEGER NULL",
+                "ALTER TABLE Attempts ADD COLUMN BankId INTEGER NULL",
+            ]
+            :
+            [
+                "CREATE TABLE IF NOT EXISTS CustomBanks (Id INT AUTO_INCREMENT PRIMARY KEY, UserId INT NOT NULL, Name VARCHAR(120) NOT NULL, CreatedAt DATETIME(6) NOT NULL, INDEX IX_CustomBanks_UserId (UserId))",
+                "ALTER TABLE Questions ADD COLUMN BankId INT NULL",
+                "ALTER TABLE Attempts ADD COLUMN BankId INT NULL",
+                "CREATE INDEX IX_Questions_BankId ON Questions (BankId)",
+            ];
+        foreach (var stmt in sql)
+        {
+            try { await db.Database.ExecuteSqlRawAsync(stmt); }
+            catch { /* already applied */ }
+        }
     }
 
     static async Task SeedFromCsvAsync(AppDbContext db, string dir, string csvPath)

@@ -31,7 +31,12 @@ export const api = {
   submit: (id, b) => call('POST', `/attempts/${id}/submit`, b),
   attempts: () => call('GET', '/attempts'),
   attempt: (id) => call('GET', `/attempts/${id}`),
-  analytics: () => call('GET', '/analytics'),
+  analytics: (bank) => call('GET', '/analytics' + (bank ? '?bank=' + bank : '')),
+  customStatus: () => call('GET', '/custom/status'),
+  customBanks: () => call('GET', '/custom/banks'),
+  customSave: (b) => call('POST', '/custom/banks', b),
+  customDelete: (id) => call('DELETE', '/custom/banks/' + id),
+  customParse: (form) => upload('/custom/parse', form),
   adminStats: () => call('GET', '/admin/stats'),
   adminQuestions: (p) => call('GET', '/admin/questions?' + new URLSearchParams(p)),
   adminDelete: (id) => call('DELETE', '/admin/questions/' + id),
@@ -50,3 +55,18 @@ export const fmtTime = (s) => {
   const m = Math.floor(s / 60), ss = s % 60;
   return `${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
 };
+
+// Multipart upload (the browser sets the Content-Type boundary itself).
+async function upload(path, form) {
+  let res;
+  try {
+    res = await fetch(BASE + path, { method: 'POST', headers: getToken() ? { Authorization: 'Bearer ' + getToken() } : {}, body: form });
+  } catch {
+    throw new Error(localStorage.getItem('lang') === 'en' ? 'Cannot reach the server. Check your connection / API address.' : 'सर्व्हरशी संपर्क होऊ शकला नाही. इंटरनेट / API पत्ता तपासा.');
+  }
+  if (res.status === 401 && getToken()) { clearSession(); location.hash = '#/login'; }
+  if (res.status === 429) throw new Error(localStorage.getItem('lang') === 'en' ? 'Too many uploads. Please wait a few minutes.' : 'खूप जास्त अपलोड. कृपया काही मिनिटे थांबा.');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  return data;
+}

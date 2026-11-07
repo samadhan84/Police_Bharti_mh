@@ -61,6 +61,28 @@ const STR = {
   confirmDel: { mr: 'हा प्रश्न हटवायचा?', en: 'Delete this question?' }, diff: { mr: 'काठिण्य', en: 'Level' }, answer: { mr: 'उत्तर', en: 'Answer' },
   pageOf: { mr: 'पृष्ठ', en: 'Page' }, noAdmin: { mr: 'तुम्हाला प्रशासक प्रवेश नाही.', en: 'You do not have admin access.' },
   impDone: { mr: 'आयात पूर्ण', en: 'Import complete' },
+  custom: { mr: 'माझा प्रश्नसंच', en: 'Custom' },
+  customTitle: { mr: 'माझा स्वतःचा प्रश्नसंच', en: 'My custom question banks' },
+  customIntro: { mr: 'तुमचे स्वतःचे प्रश्न PDF, फोटो किंवा टेक्स्ट स्वरूपात अपलोड करा आणि त्यावर चाचणी द्या. विश्लेषण नेहमीप्रमाणेच मिळेल.', en: 'Upload your own questions as a PDF, photo or text and test yourself. You get the same analytics as the official tests.' },
+  cuUpload: { mr: 'नवीन प्रश्नसंच अपलोड करा', en: 'Upload a new question bank' },
+  cuName: { mr: 'प्रश्नसंचाचे नाव (उदा. माझे नोट्स)', en: 'Bank name (e.g. My notes)' },
+  cuFiles: { mr: 'PDF / फोटो / टेक्स्ट फाईल निवडा', en: 'Choose PDF / photo / text file(s)' },
+  cuPaste: { mr: 'किंवा प्रश्न येथे पेस्ट करा', en: 'or paste the questions here' },
+  cuExtract: { mr: 'प्रश्न वाचा', en: 'Read questions' }, cuReading: { mr: 'वाचत आहे… (अर्धा मिनिट लागू शकतो)', en: 'Reading… (can take up to a minute)' },
+  cuNoAi: { mr: 'PDF / फोटो वाचण्यासाठी AI वाचक सर्व्हरवर सुरू नाही. साधा टेक्स्ट अपलोड/पेस्ट करता येतो.', en: 'The AI reader for PDF/photos is not set up on this server. Plain text upload/paste still works.' },
+  cuLayout: { mr: 'टेक्स्ट स्वरूप: 1. प्रश्न / A) … D) … / Answer: B', en: 'Text layout: 1. question / A) … D) … / Answer: B' },
+  cuFound: { mr: 'प्रश्न सापडले', en: 'questions found' },
+  cuCheck: { mr: 'प्रश्नांची उत्तरे AI ने ठरवली आहेत किंवा फाईलमध्ये नव्हती — जतन करण्यापूर्वी खालील उत्तरे तपासा.', en: 'For some questions the answer was worked out by AI or was missing — please check the answers below before saving.' },
+  cuAiAns: { mr: 'AI उत्तर', en: 'AI answer' }, cuNoAns: { mr: 'उत्तर निवडा', en: 'pick answer' },
+  cuSave: { mr: 'प्रश्नसंच जतन करा', en: 'Save question bank' }, cuSaved: { mr: 'जतन झाले', en: 'Saved' }, cuAdded: { mr: 'प्रश्न जोडले', en: 'questions added' },
+  cuRemove: { mr: 'काढा', en: 'Remove' }, cuNeedAns: { mr: 'सर्व प्रश्नांसाठी उत्तर निवडा.', en: 'Pick an answer for every question first.' },
+  cuMyBanks: { mr: 'माझे प्रश्नसंच', en: 'My banks' }, cuNone: { mr: 'अजून एकही प्रश्नसंच नाही.', en: 'No banks yet.' },
+  cuTest: { mr: 'चाचणी सुरू करा', en: 'Start test' }, cuCount: { mr: 'प्रश्न संख्या', en: 'Questions' },
+  cuAnalytics: { mr: 'विश्लेषण', en: 'Analytics' }, cuDelete: { mr: 'प्रश्नसंच हटवा', en: 'Delete bank' },
+  cuConfirmDel: { mr: 'हा प्रश्नसंच आणि त्यावरील सर्व निकाल हटवायचे?', en: 'Delete this bank and all results taken on it?' },
+  cuAllSubjects: { mr: 'सर्व विषय', en: 'All subjects' }, cuOfficial: { mr: 'अधिकृत चाचण्या', en: 'Official tests' },
+  cuCustomCard: { mr: 'स्वतःचे प्रश्न अपलोड करून त्यावर चाचणी द्या (PDF / फोटो / टेक्स्ट).', en: 'Upload your own questions (PDF / photo / text) and test yourself.' },
+  cuOpen: { mr: 'माझा प्रश्नसंच उघडा', en: 'Open my banks' }, cuPrivate: { mr: 'हे प्रश्न फक्त तुम्हालाच दिसतात.', en: 'These questions are visible only to you.' },
   netErr: { mr: 'सर्व्हरशी संपर्क होऊ शकला नाही. इंटरनेट / API पत्ता तपासा.', en: 'Cannot reach the server. Check your connection / API address.' },
 };
 
@@ -71,9 +93,11 @@ export function LangProvider({ children }) {
   useEffect(() => { localStorage.setItem('lang', lang); document.documentElement.lang = lang; }, [lang]);
   const t = (k) => STR[k]?.[lang] ?? k;
   const L = (bi) => (bi ? bi[lang] ?? bi.en : '');          // pick from an API { mr, en } value
-  const subj = (key) => t('subj_' + key);                   // subject key -> localised name
+  const subj = (key) => STR['subj_' + key]?.[lang] ?? key;   // subject key -> localised name (custom subjects fall back to the key)
+  // Title of a finished attempt: full mock, custom bank (with optional subject), or an official subject.
+  const attemptLabel = (r) => r.mode === 'full' ? t('fullMock') : r.mode === 'custom' ? (r.bankName || t('custom')) + (r.subject ? ' · ' + r.subject : '') : subj(r.subject);
   const dt = (iso) => new Date(iso + 'Z').toLocaleString(lang === 'mr' ? 'mr-IN' : 'en-IN');
-  return <Ctx.Provider value={{ lang, setLang, t, L, subj, dt }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ lang, setLang, t, L, subj, dt, attemptLabel }}>{children}</Ctx.Provider>;
 }
 export const useLang = () => useContext(Ctx);
 

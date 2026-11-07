@@ -18,6 +18,15 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>A private question bank a user built by uploading their own PDF / image / text.</summary>
+public class CustomBank
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public string Name { get; set; } = "";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 public class Question
 {
     public int Id { get; set; }
@@ -35,6 +44,8 @@ public class Question
     public string ExplanationMr { get; set; } = "";
     /// <summary>1 = easy, 2 = medium, 3 = hard</summary>
     public int Difficulty { get; set; } = 2;
+    /// <summary>null = official shared bank; otherwise the id of the user's private custom bank.</summary>
+    public int? BankId { get; set; }
 
     public string[] Options() => JsonSerializer.Deserialize<string[]>(OptionsJson) ?? [];
     public string[] OptionsMr() => JsonSerializer.Deserialize<string[]>(OptionsJsonMr) ?? [];
@@ -44,8 +55,10 @@ public class Attempt
 {
     public int Id { get; set; }
     public int UserId { get; set; }
-    public string Mode { get; set; } = "full"; // full | subject
+    public string Mode { get; set; } = "full"; // full | subject | custom
     public string? Subject { get; set; }
+    /// <summary>Set for Mode = "custom": the user's own question bank.</summary>
+    public int? BankId { get; set; }
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime? SubmittedAt { get; set; }
     public int DurationLimitSec { get; set; }

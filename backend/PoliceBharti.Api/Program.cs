@@ -52,12 +52,17 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
     o.KnownNetworks.Clear(); o.KnownProxies.Clear();
 });
 // Slow down password guessing: 20 login/register calls per minute per IP.
+builder.Services.AddSingleton<PoliceBharti.Api.Services.QuestionExtractor>();
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = 429;
     o.AddPolicy("auth", ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1) }));
+    // Custom-bank uploads can call the paid AI reader: 15 per 10 minutes per IP.
+    o.AddPolicy("upload", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 15, Window = TimeSpan.FromMinutes(10) }));
 });
 
 var app = builder.Build();
@@ -81,6 +86,7 @@ app.MapAuth();
 app.MapAttempts();
 app.MapAnalytics();
 app.MapAdmin();
+app.MapCustom();
 app.MapFallbackToFile("index.html");
 
 app.Run();

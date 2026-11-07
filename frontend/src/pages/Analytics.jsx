@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api, getUser } from '../api.js';
 import { useLang } from '../i18n.jsx';
@@ -7,16 +7,26 @@ import { useLang } from '../i18n.jsx';
 const color = (a) => (a >= 75 ? '#2e9e5b' : a >= 60 ? '#e0a800' : '#d9534f');
 
 export default function Analytics() {
-  const { t, L, subj } = useLang();
+  const { t, L, attemptLabel } = useLang();
+  const [sp, setSp] = useSearchParams();
+  const bank = sp.get('bank') || '';
+  const [banks, setBanks] = useState([]);
+  useEffect(() => { api.customBanks().then(setBanks).catch(() => {}); }, []);
   const [d, setD] = useState(null);
   const [err, setErr] = useState('');
-  useEffect(() => { api.analytics().then(setD).catch((e) => setErr(e.message)); }, []);
-  if (err) return <div className="error">{err}</div>;
-  if (!d) return <p>{t('loading')}</p>;
-  if (!d.hasData) return <div className="card"><p>{t('noData')}</p><Link className="btn primary" to="/">{t('startTest')}</Link></div>;
+  useEffect(() => { setD(null); setErr(''); api.analytics(bank).then(setD).catch((e) => setErr(e.message)); }, [bank]);
+  const picker = banks.length > 0 && (
+    <div className="tabs noprint">
+      <button className={'tab' + (!bank ? ' on' : '')} onClick={() => setSp({})}>{t('cuOfficial')}</button>
+      {banks.map((b) => <button key={b.id} className={'tab' + (String(b.id) === bank ? ' on' : '')} onClick={() => setSp({ bank: b.id })}>{b.name}</button>)}
+    </div>
+  );
+  if (err) return <>{picker}<div className="error">{err}</div></>;
+  if (!d) return <>{picker}<p>{t('loading')}</p></>;
+  if (!d.hasData) return <>{picker}<div className="card"><p>{t('noData')}</p><Link className="btn primary" to={bank ? '/custom' : '/'}>{t('startTest')}</Link></div></>;
 
   const s = d.summary;
-  const trend = d.trend.map((x, i) => ({ n: i + 1, percent: x.percent, label: x.mode === 'full' ? t('fullMock') : subj(x.subject) }));
+  const trend = d.trend.map((x, i) => ({ n: i + 1, percent: x.percent, label: attemptLabel(x) }));
   const subjects = d.subjects.map((x) => ({ ...x, label: L(x.name) }));
 
   return (
@@ -25,6 +35,7 @@ export default function Analytics() {
         <h1>{t('reportTitle')}</h1>
         <p>{t('candidate')}: {getUser()?.name} · {new Date().toLocaleDateString()}</p>
       </div>
+      {picker}
       <div className="titlebar"><h2>{t('perfAnalytics')}</h2><button className="btn noprint" onClick={() => window.print()}>{t('print')}</button></div>
       <div className="grid stats">
         <div className="card stat"><div className="big">{s.attempts}</div><div className="muted">{t('testsTaken')}</div></div>
@@ -37,7 +48,7 @@ export default function Analytics() {
       <div className="card reco">
         <h3>{t('improve')}</h3>
         <ul>{d.recommendations.map((x, i) => <li key={i}>{L(x)}</li>)}</ul>
-        <p className="muted small">{t('target')} {s.targetPercent}% — {t('targetNote')}</p>
+        {!d.isCustom && <p className="muted small">{t('target')} {s.targetPercent}% — {t('targetNote')}</p>}
       </div>
 
       <div className="card">

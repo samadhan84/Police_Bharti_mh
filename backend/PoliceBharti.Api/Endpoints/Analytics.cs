@@ -14,22 +14,24 @@ public static class AnalyticsEndpoints
 
     public static void MapAnalytics(this WebApplication app)
     {
-        app.MapGet("/api/analytics", async (HttpContext ctx, AppDbContext db) =>
+        app.MapGet("/api/analytics", async (HttpContext ctx, AppDbContext db, int? bank) =>
         {
             var uid = ctx.User.UserId();
-            var attempts = await db.Attempts.Where(a => a.UserId == uid && a.SubmittedAt != null)
+            var attempts = await db.Attempts.Where(a => a.UserId == uid && a.SubmittedAt != null && a.BankId == bank)
                 .OrderBy(a => a.SubmittedAt).ToListAsync();
             if (attempts.Count == 0) return Results.Ok(new { hasData = false });
 
             var rows = await db.AttemptAnswers
-                .Where(x => x.Attempt.UserId == uid && x.Attempt.SubmittedAt != null)
+                .Where(x => x.Attempt.UserId == uid && x.Attempt.SubmittedAt != null && x.Attempt.BankId == bank)
                 .Select(x => new Row(x.Question.Subject, x.Question.SubjectMr, x.Question.Topic, x.Question.TopicMr,
                     x.Question.Difficulty, x.IsCorrect, x.Selected == null, x.TimeSec)).ToListAsync();
 
             static double Pct(int a, int b) => b == 0 ? 0 : Math.Round(100.0 * a / b, 1);
 
-            var full = attempts.Where(a => a.Mode == "full").ToList();
-            var trend = attempts.Select(a => new { a.Id, date = a.SubmittedAt, a.Mode, a.Subject, percent = Pct(a.Correct, a.Total) }).ToList();
+            var custom = bank != null;
+            var full = attempts.Where(a => custom || a.Mode == "full").ToList(); // for a custom bank every test counts as a "mock"
+            var bankName = custom ? await db.CustomBanks.Where(b => b.Id == bank && b.UserId == uid).Select(b => b.Name).FirstOrDefaultAsync() : null;
+            var trend = attempts.Select(a => new { a.Id, date = a.SubmittedAt, a.Mode, a.Subject, bankName, percent = Pct(a.Correct, a.Total) }).ToList();
 
             var subjects = rows.GroupBy(r => (r.Subject, r.SubjectMr)).Select(g => new
             {
@@ -61,7 +63,14 @@ public static class AnalyticsEndpoints
             var tips = new List<Bi<string>>();
             void Tip(string mr, string en) => tips.Add(new(mr, en));
 
-            if (lastFullPct is null)
+            if (custom)
+            {
+                if (lastFullPct >= 80)
+                    Tip($"तुमची शेवटची चाचणी {lastFullPct}% होती — उत्तम! कठीण प्रश्नांवर लक्ष द्या.", $"Your last test was {lastFullPct}% — great. Now focus on the harder questions.");
+                else
+                    Tip($"तुमची शेवटची चाचणी {lastFullPct}% होती. खालील कमजोर घटकांची उजळणी करा आणि पुन्हा चाचणी द्या.", $"Your last test was {lastFullPct}%. Revise the weak topics below, then retake the test.");
+            }
+            else if (lastFullPct is null)
                 Tip("वेळेच्या मर्यादेत तुमची कामगिरी पाहण्यासाठी 100 प्रश्नांची पूर्ण सराव चाचणी द्या.",
                     "Take a full 100-question mock to see how you perform under real exam timing.");
             else if (lastFullPct >= TargetPercent)
@@ -96,7 +105,7 @@ public static class AnalyticsEndpoints
 
             return Results.Ok(new
             {
-                hasData = true,
+                hasData = true, isCustom = custom, bankName,
                 summary = new
                 {
                     attempts = attempts.Count, fullMocks = full.Count, overallAccuracy = overall,

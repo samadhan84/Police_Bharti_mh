@@ -8,6 +8,7 @@ import Result from './pages/Result.jsx';
 import Analytics from './pages/Analytics.jsx';
 import History from './pages/History.jsx';
 import Admin from './pages/Admin.jsx';
+import Custom from './pages/Custom.jsx';
 
 function Guard({ children }) {
   return getToken() ? children : <Navigate to="/login" replace />;
@@ -27,6 +28,7 @@ export default function App() {
           <nav>
             <NavLink to="/">{t('home')}</NavLink>
             <NavLink to="/history">{t('results')}</NavLink>
+            <NavLink to="/custom">{t('custom')}</NavLink>
             <NavLink to="/analytics">{t('analytics')}</NavLink>
             {user?.isAdmin && <NavLink to="/admin">{t('admin')}</NavLink>}
           </nav>
@@ -43,6 +45,7 @@ export default function App() {
           <Route path="/result/:id" element={<Guard><Result /></Guard>} />
           <Route path="/history" element={<Guard><History /></Guard>} />
           <Route path="/analytics" element={<Guard><Analytics /></Guard>} />
+          <Route path="/custom" element={<Guard><Custom /></Guard>} />
           <Route path="/admin" element={<Guard><Admin /></Guard>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

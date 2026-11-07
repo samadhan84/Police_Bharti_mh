@@ -5,7 +5,7 @@ import { useLang } from '../i18n.jsx';
 
 export default function Dashboard() {
   const nav = useNavigate();
-  const { t, L, dt, subj } = useLang();
+  const { t, L, dt, subj, attemptLabel } = useLang();
   const [subjects, setSubjects] = useState([]);
   const [recent, setRecent] = useState([]);
   const [err, setErr] = useState('');
@@ -37,6 +37,14 @@ export default function Dashboard() {
         <button className="btn primary" disabled={busy} onClick={() => start({ mode: 'full' })}>{t('startFull')}</button>
       </section>
 
+      <section className="card hero">
+        <div>
+          <h3>{t('customTitle')}</h3>
+          <p className="muted">{t('cuCustomCard')}</p>
+        </div>
+        <Link className="btn primary" to="/custom">{t('cuOpen')}</Link>
+      </section>
+
       <h3>{t('subjPractice')}</h3>
       <div className="grid">
         {subjects.map((s) => (
@@ -53,7 +61,7 @@ export default function Dashboard() {
         <div className="card list">
           {recent.map((r) => (
             <Link key={r.id} to={'/result/' + r.id} className="row">
-              <span>{r.mode === 'full' ? t('fullMock') : subj(r.subject)}</span>
+              <span>{attemptLabel(r)}</span>
               <span className="muted">{dt(r.submittedAt)}</span>
               <b>{r.correct}/{r.total}</b>
             </Link>

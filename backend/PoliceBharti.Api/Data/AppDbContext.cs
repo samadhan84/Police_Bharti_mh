@@ -6,6 +6,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Question> Questions => Set<Question>();
+    public DbSet<CustomBank> CustomBanks => Set<CustomBank>();
     public DbSet<Attempt> Attempts => Set<Attempt>();
     public DbSet<AttemptAnswer> AttemptAnswers => Set<AttemptAnswer>();
 
@@ -18,6 +19,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<Question>().Property(q => q.Topic).HasMaxLength(80);
         b.Entity<Question>().Property(q => q.SubjectMr).HasMaxLength(100);
         b.Entity<Question>().Property(q => q.TopicMr).HasMaxLength(100);
+        b.Entity<Question>().HasIndex(q => q.BankId);
+        b.Entity<CustomBank>().HasIndex(x => x.UserId);
+        b.Entity<CustomBank>().Property(x => x.Name).HasMaxLength(120);
         b.Entity<Attempt>().HasIndex(a => a.UserId);
         b.Entity<Attempt>().Property(a => a.Subject).HasMaxLength(60);
         b.Entity<AttemptAnswer>().HasIndex(a => new { a.AttemptId, a.QuestionId }).IsUnique();

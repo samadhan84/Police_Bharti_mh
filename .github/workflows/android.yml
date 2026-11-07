@@ -1,0 +1,71 @@
+name: Android APK
+# Builds an installable Android app (APK) from the React frontend with Capacitor.
+# Run it from the repo's Actions tab -> "Android APK" -> Run workflow, and enter the public URL of your deployed server
+# (the API + web app from DEPLOY.md, e.g. https://police-bharti.onrender.com). The URL can also be saved once as a
+# repository variable named API_URL (Settings -> Secrets and variables -> Actions -> Variables).
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: "Public URL of your deployed server, e.g. https://police-bharti.onrender.com"
+        required: false
+        type: string
+
+permissions:
+  contents: write   # to publish the APK as a GitHub pre-release
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      RAW_API_URL: ${{ inputs.api_url || vars.API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out the API address
+        run: |
+          url="${RAW_API_URL%/}"
+          if [ -z "$url" ]; then
+            echo "::error::No server URL. Run the workflow again and fill in 'api_url', or set a repository variable API_URL. The phone app needs a deployed server (see DEPLOY.md)."
+            exit 1
+          fi
+          case "$url" in */api) ;; *) url="$url/api" ;; esac
+          echo "VITE_API_URL=$url" >> "$GITHUB_ENV"
+          echo "App will talk to: $url"
+
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+
+      - name: Build web app
+        working-directory: frontend
+        run: npm ci && npm run build
+
+      - name: Add Android project and sync
+        working-directory: frontend
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Build debug APK
+        working-directory: frontend/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Name the APK
+        run: cp frontend/android/app/build/outputs/apk/debug/app-debug.apk PoliceBharti.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PoliceBharti-apk
+          path: PoliceBharti.apk
+          retention-days: 30
+
+      - name: Publish as a release (easy download on the phone)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android-latest --yes --cleanup-tag || true
+          gh release create android-latest PoliceBharti.apk --prerelease \
+            --title "Android app (latest build)" \
+            --notes "Debug-signed APK. Open this page on your phone, download PoliceBharti.apk and install it (allow 'install unknown apps' for your browser). Server: ${VITE_API_URL}"
